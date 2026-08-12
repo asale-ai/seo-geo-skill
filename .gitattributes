@@ -1,0 +1,11 @@
+# Keep line endings stable across platforms so that frontmatter parsing,
+# checksums and diffs behave the same on Windows as on macOS and Linux.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.gz binary
+*.zip binary
