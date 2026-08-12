@@ -143,12 +143,13 @@ fi
 
 step "Writing the new version"
 if [ "$DRY_RUN" = "0" ]; then
-  # Only the first `version =` line, which is the package's own.
-  if sed --version > /dev/null 2>&1; then
-    sed -i "0,/^version = \"$CURRENT\"/s//version = \"$NEW\"/" Cargo.toml
-  else
-    sed -i '' "1,/^version = \"$CURRENT\"/s//version = \"$NEW\"/" Cargo.toml
-  fi
+  # Rewrite only the first `version =` line, which is the package's own.
+  # awk rather than sed: BSD and GNU sed disagree about the "first match only"
+  # idiom, and this has to work on both macOS and Linux runners.
+  awk -v new="$NEW" '
+    !done && /^version = "/ { sub(/"[^"]*"/, "\"" new "\""); done = 1 }
+    { print }
+  ' Cargo.toml > Cargo.toml.tmp && mv Cargo.toml.tmp Cargo.toml
   WROTE=$(grep -m1 '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
   [ "$WROTE" = "$NEW" ] || die "Cargo.toml still reads $WROTE after the bump"
   # Keeps Cargo.lock's own record of the package version in step, so

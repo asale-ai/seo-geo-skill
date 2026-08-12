@@ -1,6 +1,6 @@
 [package]
 name = "seogeo"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 rust-version = "1.82"
 description = "Single-binary execution engine for the SEO + GEO agent skills"
