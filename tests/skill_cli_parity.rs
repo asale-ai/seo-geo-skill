@@ -428,7 +428,7 @@ fn subcommands_in(help: &str) -> BTreeSet<String> {
             if line.starts_with("Options:") || line.starts_with(char::is_alphabetic) {
                 break;
             }
-            if let Some(word) = line.trim().split_whitespace().next() {
+            if let Some(word) = line.split_whitespace().next() {
                 if word.starts_with(|c: char| c.is_ascii_lowercase()) {
                     out.insert(word.to_string());
                 }
