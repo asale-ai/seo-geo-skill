@@ -58,7 +58,11 @@ pub fn load_config() -> Config {
     let mut cfg = Config::default();
     if let Ok(raw) = std::fs::read_to_string(config_path()) {
         if let Ok(v) = serde_json::from_str::<Value>(&raw) {
-            let take = |k: &str| v[k].as_str().map(|s| s.to_string()).filter(|s| !s.is_empty());
+            let take = |k: &str| {
+                v[k].as_str()
+                    .map(|s| s.to_string())
+                    .filter(|s| !s.is_empty())
+            };
             cfg.api_key = take("api_key");
             cfg.service_account_path = take("service_account_path");
             cfg.default_property = take("default_property");
@@ -77,7 +81,9 @@ pub fn load_config() -> Config {
     cfg.ads_developer_token = cfg
         .ads_developer_token
         .or_else(|| env_or("GOOGLE_ADS_DEVELOPER_TOKEN"));
-    cfg.ads_customer_id = cfg.ads_customer_id.or_else(|| env_or("GOOGLE_ADS_CUSTOMER_ID"));
+    cfg.ads_customer_id = cfg
+        .ads_customer_id
+        .or_else(|| env_or("GOOGLE_ADS_CUSTOMER_ID"));
     cfg.indexnow_key = cfg.indexnow_key.or_else(|| env_or("INDEXNOW_KEY"));
     cfg
 }
@@ -175,8 +181,11 @@ fn access_token(scopes: &[&str]) -> CmdResult<String> {
         use rsa::signature::{SignatureEncoding, Signer};
         use sha2::Sha256;
 
-        let key = rsa::RsaPrivateKey::from_pkcs8_pem(&sa.private_key)
-            .map_err(|e| Error(format!("service account private key is not valid PKCS#8: {e}")))?;
+        let key = rsa::RsaPrivateKey::from_pkcs8_pem(&sa.private_key).map_err(|e| {
+            Error(format!(
+                "service account private key is not valid PKCS#8: {e}"
+            ))
+        })?;
         let signer = SigningKey::<Sha256>::new(key);
         b64url(&signer.sign(signing_input.as_bytes()).to_bytes())
     };
@@ -190,12 +199,21 @@ fn access_token(scopes: &[&str]) -> CmdResult<String> {
         ],
         &RequestOptions::with_timeout(30),
     )?;
-    let body: Value = serde_json::from_slice(&resp.body)
-        .map_err(|_| Error(format!("token endpoint returned non-JSON: {}", redact(&resp.text()))))?;
+    let body: Value = serde_json::from_slice(&resp.body).map_err(|_| {
+        Error(format!(
+            "token endpoint returned non-JSON: {}",
+            redact(&resp.text())
+        ))
+    })?;
     body["access_token"]
         .as_str()
         .map(|s| s.to_string())
-        .ok_or_else(|| Error(format!("token exchange failed: {}", redact(&body.to_string()))))
+        .ok_or_else(|| {
+            Error(format!(
+                "token exchange failed: {}",
+                redact(&body.to_string())
+            ))
+        })
 }
 
 fn bearer_opts(token: &str, timeout: u64) -> RequestOptions {
@@ -215,7 +233,11 @@ fn json_call(
     };
     let text = resp.text();
     if !(200..300).contains(&resp.status) {
-        return err(format!("HTTP {}: {}", resp.status, redact(&truncate(&text, 600))));
+        return err(format!(
+            "HTTP {}: {}",
+            resp.status,
+            redact(&truncate(&text, 600))
+        ));
     }
     serde_json::from_str(&text)
         .map_err(|e| Error(format!("invalid JSON from {}: {e}", redact(url))))
@@ -265,7 +287,14 @@ pub fn auth(check: Option<&str>, setup: bool, tier: bool, json: bool) -> CmdResu
         ("youtube", ("YouTube Data API v3", has_key, "api_key")),
         ("gsc", ("Search Console API", has_sa, "service_account")),
         ("indexing", ("Indexing API v3", has_sa, "service_account")),
-        ("ga4", ("GA4 Data API", has_sa && cfg.ga4_property_id.is_some(), "service_account")),
+        (
+            "ga4",
+            (
+                "GA4 Data API",
+                has_sa && cfg.ga4_property_id.is_some(),
+                "service_account",
+            ),
+        ),
         (
             "ads",
             (
@@ -317,13 +346,21 @@ pub fn auth(check: Option<&str>, setup: bool, tier: bool, json: bool) -> CmdResu
         for (k, v) in out["services"].as_object().unwrap() {
             println!(
                 "  [{}] {:<14} {}",
-                if v["configured"].as_bool().unwrap_or(false) { "OK " } else { "-- " },
+                if v["configured"].as_bool().unwrap_or(false) {
+                    "OK "
+                } else {
+                    "-- "
+                },
                 k,
                 v["service"].as_str().unwrap_or("")
             );
         }
     }
-    Ok(if all_ok { ExitCode::SUCCESS } else { ExitCode::from(1) })
+    Ok(if all_ok {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(1)
+    })
 }
 
 fn print_setup() {
@@ -538,7 +575,10 @@ pub fn crux_history(
 
     let raw = json_call("POST", CRUX_HISTORY, Some(&body), &key_opts(&key, 45))?;
     let record = &raw["record"];
-    let periods = record["collectionPeriods"].as_array().cloned().unwrap_or_default();
+    let periods = record["collectionPeriods"]
+        .as_array()
+        .cloned()
+        .unwrap_or_default();
 
     let mut series = serde_json::Map::new();
     if let Some(metrics) = record["metrics"].as_object() {
@@ -551,7 +591,10 @@ pub fn crux_history(
             // ~25 weeks back. Trend = latest vs earliest non-null.
             let numeric: Vec<Option<f64>> = p75
                 .iter()
-                .map(|v| v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok())))
+                .map(|v| {
+                    v.as_f64()
+                        .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+                })
                 .collect();
             let first = numeric.iter().flatten().next().copied();
             let last = numeric.iter().flatten().next_back().copied();
@@ -620,7 +663,8 @@ pub fn lcp_subparts(url: &str, form_factor: FormFactor, json: bool) -> CmdResult
 
     let p75 = |name: &str| -> Option<f64> {
         let v = &record[name]["percentiles"]["p75"];
-        v.as_f64().or_else(|| v.as_str().and_then(|s| s.parse().ok()))
+        v.as_f64()
+            .or_else(|| v.as_str().and_then(|s| s.parse().ok()))
     };
 
     let mut breakdown = serde_json::Map::new();
@@ -691,7 +735,10 @@ pub fn lcp_subparts(url: &str, form_factor: FormFactor, json: bool) -> CmdResult
             for d in &dominant {
                 println!(
                     "  {} = {} ms ({:.0}%)",
-                    d["metric"].as_str().unwrap_or("").replace("largest_contentful_paint_image_", ""),
+                    d["metric"]
+                        .as_str()
+                        .unwrap_or("")
+                        .replace("largest_contentful_paint_image_", ""),
                     d["p75_ms"],
                     d["share"].as_f64().unwrap_or(0.0) * 100.0
                 );
@@ -738,8 +785,19 @@ pub fn gsc_query(
     let property = gsc_property(property)?;
     let token = access_token(&[SCOPE_GSC])?;
 
-    let dims: Vec<&str> = dimensions.split(',').map(str::trim).filter(|d| !d.is_empty()).collect();
-    const VALID: &[&str] = &["query", "page", "country", "device", "searchAppearance", "date"];
+    let dims: Vec<&str> = dimensions
+        .split(',')
+        .map(str::trim)
+        .filter(|d| !d.is_empty())
+        .collect();
+    const VALID: &[&str] = &[
+        "query",
+        "page",
+        "country",
+        "device",
+        "searchAppearance",
+        "date",
+    ];
     for d in &dims {
         if !VALID.contains(d) {
             return err(format!(
@@ -750,7 +808,9 @@ pub fn gsc_query(
     }
 
     // GSC data lags ~2 days, so the default window ends there rather than today.
-    let end = end_date.map(|s| s.to_string()).unwrap_or_else(|| days_ago(2));
+    let end = end_date
+        .map(|s| s.to_string())
+        .unwrap_or_else(|| days_ago(2));
     let start = start_date
         .map(|s| s.to_string())
         .unwrap_or_else(|| days_ago(days + 2));
@@ -878,7 +938,12 @@ pub fn gsc_sitemaps(property: Option<&str>, json: bool) -> CmdResult<ExitCode> {
 
 pub fn gsc_sites(json: bool) -> CmdResult<ExitCode> {
     let token = access_token(&[SCOPE_GSC])?;
-    let raw = json_call("GET", &format!("{GSC_API}/sites"), None, &bearer_opts(&token, 30))?;
+    let raw = json_call(
+        "GET",
+        &format!("{GSC_API}/sites"),
+        None,
+        &bearer_opts(&token, 30),
+    )?;
     let sites: Vec<Value> = raw["siteEntry"].as_array().cloned().unwrap_or_default();
     let result = json!({"count": sites.len(), "sites": sites});
     if json {
@@ -922,7 +987,12 @@ pub fn gsc_inspect(
             "siteUrl": property,
             "languageCode": "en-US",
         });
-        match json_call("POST", GSC_INSPECT_API, Some(&body), &bearer_opts(&token, 60)) {
+        match json_call(
+            "POST",
+            GSC_INSPECT_API,
+            Some(&body),
+            &bearer_opts(&token, 60),
+        ) {
             Ok(raw) => {
                 let index = &raw["inspectionResult"]["indexStatusResult"];
                 results.push(json!({
@@ -1063,7 +1133,12 @@ pub fn ga4_report(
     let (dimensions, metrics, with_filter): (Vec<&str>, Vec<&str>, bool) = match report {
         "organic" => (
             vec!["date"],
-            vec!["sessions", "totalUsers", "screenPageViews", "engagementRate"],
+            vec![
+                "sessions",
+                "totalUsers",
+                "screenPageViews",
+                "engagementRate",
+            ],
             true,
         ),
         "top-pages" => (
@@ -1073,9 +1148,11 @@ pub fn ga4_report(
         ),
         "devices" => (vec!["deviceCategory"], vec!["sessions", "totalUsers"], true),
         "countries" => (vec!["country"], vec!["sessions", "totalUsers"], true),
-        other => return err(format!(
-            "unknown report {other:?}; expected organic, top-pages, devices, or countries"
-        )),
+        other => {
+            return err(format!(
+                "unknown report {other:?}; expected organic, top-pages, devices, or countries"
+            ))
+        }
     };
 
     let mut body = json!({
@@ -1120,7 +1197,10 @@ pub fn ga4_report(
     if json {
         print_json(&result)?;
     } else {
-        println!("GA4 properties/{property_id} — {report} ({} rows)", rows.len());
+        println!(
+            "GA4 properties/{property_id} — {report} ({} rows)",
+            rows.len()
+        );
         for r in rows.iter().take(30) {
             let label = dimensions
                 .iter()
@@ -1242,7 +1322,11 @@ pub fn nlp_analyze(
         if let Some(cats) = result["categories"].as_array() {
             println!("Categories:");
             for c in cats {
-                println!("  {} ({:.2})", c["name"], c["confidence"].as_f64().unwrap_or(0.0));
+                println!(
+                    "  {} ({:.2})",
+                    c["name"],
+                    c["confidence"].as_f64().unwrap_or(0.0)
+                );
             }
         }
     }
@@ -1652,7 +1736,8 @@ mod tests {
 
     #[test]
     fn report_html_renders_nested_json() {
-        let data = json!({"scores": {"performance": 91}, "issues": [{"id": "a", "severity": "high"}]});
+        let data =
+            json!({"scores": {"performance": 91}, "issues": [{"id": "a", "severity": "high"}]});
         let html = render_report_html("full", "example.com", &data);
         assert!(html.contains("Performance"));
         assert!(html.contains("Severity"));

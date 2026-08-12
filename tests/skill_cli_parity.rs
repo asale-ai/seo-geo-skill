@@ -272,7 +272,11 @@ fn every_skill_has_well_formed_frontmatter() {
     }
 
     assert!(count >= 40, "expected the full skill set, found {count}");
-    assert!(problems.is_empty(), "skill frontmatter problems:\n  {}", problems.join("\n  "));
+    assert!(
+        problems.is_empty(),
+        "skill frontmatter problems:\n  {}",
+        problems.join("\n  ")
+    );
 }
 
 #[test]

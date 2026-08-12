@@ -115,7 +115,9 @@ pub fn run(action: CrmAction) -> CmdResult<ExitCode> {
             let filtered: Vec<&Value> = match &stage {
                 Some(s) => {
                     let s = check_stage(s)?;
-                    all.iter().filter(|p| p["stage"].as_str() == Some(&s)).collect()
+                    all.iter()
+                        .filter(|p| p["stage"].as_str() == Some(&s))
+                        .collect()
                 }
                 None => all.iter().collect(),
             };
@@ -147,8 +149,8 @@ pub fn run(action: CrmAction) -> CmdResult<ExitCode> {
         CrmAction::Show { domain, json } => {
             let domain = normalize_domain(&domain);
             let store = load();
-            let idx = find_index(&store, &domain)
-                .ok_or_else(|| Error(format!("{domain} not found")))?;
+            let idx =
+                find_index(&store, &domain).ok_or_else(|| Error(format!("{domain} not found")))?;
             let record = &store["prospects"][idx];
             if json {
                 print_json(record)?;
@@ -192,8 +194,8 @@ pub fn run(action: CrmAction) -> CmdResult<ExitCode> {
         } => {
             let domain = normalize_domain(&domain);
             let mut store = load();
-            let idx = find_index(&store, &domain)
-                .ok_or_else(|| Error(format!("{domain} not found")))?;
+            let idx =
+                find_index(&store, &domain).ok_or_else(|| Error(format!("{domain} not found")))?;
             if let Some(s) = stage {
                 store["prospects"][idx]["stage"] = json!(check_stage(&s)?);
             }
@@ -221,8 +223,8 @@ pub fn run(action: CrmAction) -> CmdResult<ExitCode> {
         CrmAction::Note { domain, text, json } => {
             let domain = normalize_domain(&domain);
             let mut store = load();
-            let idx = find_index(&store, &domain)
-                .ok_or_else(|| Error(format!("{domain} not found")))?;
+            let idx =
+                find_index(&store, &domain).ok_or_else(|| Error(format!("{domain} not found")))?;
             let note = json!({"date": today_utc(), "timestamp": now_utc(), "text": text});
             store["prospects"][idx]["notes"]
                 .as_array_mut()
@@ -246,8 +248,8 @@ pub fn run(action: CrmAction) -> CmdResult<ExitCode> {
         } => {
             let domain = normalize_domain(&domain);
             let mut store = load();
-            let idx = find_index(&store, &domain)
-                .ok_or_else(|| Error(format!("{domain} not found")))?;
+            let idx =
+                find_index(&store, &domain).ok_or_else(|| Error(format!("{domain} not found")))?;
             let audit = json!({
                 "date": today_utc(),
                 "timestamp": now_utc(),
@@ -333,8 +335,8 @@ pub fn run(action: CrmAction) -> CmdResult<ExitCode> {
         CrmAction::Compare { domain, json } => {
             let domain = normalize_domain(&domain);
             let store = load();
-            let idx = find_index(&store, &domain)
-                .ok_or_else(|| Error(format!("{domain} not found")))?;
+            let idx =
+                find_index(&store, &domain).ok_or_else(|| Error(format!("{domain} not found")))?;
             let empty = vec![];
             let audits = store["prospects"][idx]["audits"]
                 .as_array()

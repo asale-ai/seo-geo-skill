@@ -50,7 +50,14 @@ pub fn dispatch(cli: Cli) -> CmdResult<ExitCode> {
             a11y_tree,
             user_agent,
             json,
-        } => core::render(&url, mode, timeout_ms, a11y_tree, user_agent.as_deref(), json),
+        } => core::render(
+            &url,
+            mode,
+            timeout_ms,
+            a11y_tree,
+            user_agent.as_deref(),
+            json,
+        ),
         SitemapDiscovery { url, json } => core::sitemap_discovery(&url, json),
         Robots { url, json } => core::robots(&url, json),
         LlmsTxt { action } => core::llms_txt(action),
@@ -67,7 +74,11 @@ pub fn dispatch(cli: Cli) -> CmdResult<ExitCode> {
 
         // geo
         Citability { url, file, json } => geo::citability(url.as_deref(), file.as_deref(), json),
-        BrandScan { brand, domain, json } => geo::brand_scan(&brand, domain.as_deref(), json),
+        BrandScan {
+            brand,
+            domain,
+            json,
+        } => geo::brand_scan(&brand, domain.as_deref(), json),
 
         // content
         ContentQuality {
@@ -91,7 +102,13 @@ pub fn dispatch(cli: Cli) -> CmdResult<ExitCode> {
             file,
             features,
             json,
-        } => google::nlp_analyze(url.as_deref(), text.as_deref(), file.as_deref(), &features, json),
+        } => google::nlp_analyze(
+            url.as_deref(),
+            text.as_deref(),
+            file.as_deref(),
+            &features,
+            json,
+        ),
 
         // schema
         SchemaGenerate {
@@ -239,9 +256,7 @@ pub fn dispatch(cli: Cli) -> CmdResult<ExitCode> {
 
         // dataforseo
         DataforseoCosts { action } => dataforseo::costs(action),
-        DataforseoNormalize { file, module, json } => {
-            dataforseo::normalize(&file, &module, json)
-        }
+        DataforseoNormalize { file, module, json } => dataforseo::normalize(&file, &module, json),
         DataforseoMerchant { action } => dataforseo::merchant(action),
 
         // misc

@@ -211,7 +211,10 @@ pub fn parse(file: Option<&str>, url: Option<&str>, json: bool) -> CmdResult<Exi
             "Meta Description: {}",
             parsed.meta_description.as_deref().unwrap_or("(none)")
         );
-        println!("Canonical: {}", parsed.canonical.as_deref().unwrap_or("(none)"));
+        println!(
+            "Canonical: {}",
+            parsed.canonical.as_deref().unwrap_or("(none)")
+        );
         println!("H1 Tags: {}", parsed.h1.len());
         println!("H2 Tags: {}", parsed.h2.len());
         println!("Images: {}", parsed.images.len());
@@ -423,10 +426,7 @@ fn origin_of(input: &str) -> CmdResult<String> {
     }
     let parsed = Url::parse(&url).map_err(|e| Error(e.to_string()))?;
     let host = parsed.host_str().unwrap_or_default();
-    let port = parsed
-        .port()
-        .map(|p| format!(":{p}"))
-        .unwrap_or_default();
+    let port = parsed.port().map(|p| format!(":{p}")).unwrap_or_default();
     Ok(format!("{}://{host}{port}", parsed.scheme()))
 }
 
@@ -459,7 +459,11 @@ fn sitemap_kind(body: &[u8], content_type: &str, url: &str) -> (Option<String>, 
         || url.to_ascii_lowercase().ends_with(".txt");
     if is_text {
         let text = String::from_utf8_lossy(&trimmed);
-        let lines: Vec<&str> = text.lines().map(str::trim).filter(|l| !l.is_empty()).collect();
+        let lines: Vec<&str> = text
+            .lines()
+            .map(str::trim)
+            .filter(|l| !l.is_empty())
+            .collect();
         if lines.len() > 50_000 {
             return (
                 None,
@@ -485,7 +489,10 @@ fn sitemap_kind(body: &[u8], content_type: &str, url: &str) -> (Option<String>, 
         }
         return (None, Some("invalid text sitemap".into()));
     }
-    (None, Some("response is not a supported sitemap format".into()))
+    (
+        None,
+        Some("response is not a supported sitemap format".into()),
+    )
 }
 
 fn xml_root_local_name(body: &[u8]) -> Option<String> {
@@ -513,8 +520,10 @@ fn display_url(raw: &str) -> (String, bool) {
             let host = u.host_str().unwrap_or_default();
             let port = u.port().map(|p| format!(":{p}")).unwrap_or_default();
             let path = if u.path().is_empty() { "/" } else { u.path() };
-            let redacted =
-                !u.username().is_empty() || u.password().is_some() || u.query().is_some() || u.fragment().is_some();
+            let redacted = !u.username().is_empty()
+                || u.password().is_some()
+                || u.query().is_some()
+                || u.fragment().is_some();
             (format!("{}://{host}{port}{path}", u.scheme()), redacted)
         }
         Err(_) => (raw.to_string(), true),
@@ -545,7 +554,8 @@ pub fn sitemap_discovery(url: &str, json: bool) -> CmdResult<ExitCode> {
             for line in r.text().lines() {
                 let lower = line.trim().to_ascii_lowercase();
                 if let Some(rest) = lower.strip_prefix("sitemap:") {
-                    let idx = line.to_ascii_lowercase().find("sitemap:").unwrap() + "sitemap:".len();
+                    let idx =
+                        line.to_ascii_lowercase().find("sitemap:").unwrap() + "sitemap:".len();
                     let value = line[idx..].trim().to_string();
                     let _ = rest;
                     if !value.is_empty() && !declared_raw.contains(&value) {
@@ -605,7 +615,9 @@ pub fn sitemap_discovery(url: &str, json: bool) -> CmdResult<ExitCode> {
             "error": serde_json::Value::Null,
         });
         if source == "robots.txt" {
-            let host = Url::parse(candidate).ok().and_then(|u| u.host_str().map(String::from));
+            let host = Url::parse(candidate)
+                .ok()
+                .and_then(|u| u.host_str().map(String::from));
             if host.as_deref() != Some(target_host.as_str()) {
                 entry["cross_host"] = json!(true);
             }
@@ -688,12 +700,12 @@ pub fn robots(url: &str, json: bool) -> CmdResult<ExitCode> {
             for crawler in AI_CRAWLER_TOKENS {
                 let key = crawler.to_ascii_lowercase();
                 let verdict = if let Some(directives) = rules.get(&key) {
-                    if directives
-                        .iter()
-                        .any(|(d, p)| d == "disallow" && p == "/")
-                    {
+                    if directives.iter().any(|(d, p)| d == "disallow" && p == "/") {
                         "BLOCKED"
-                    } else if directives.iter().any(|(d, p)| d == "disallow" && !p.is_empty()) {
+                    } else if directives
+                        .iter()
+                        .any(|(d, p)| d == "disallow" && !p.is_empty())
+                    {
                         "PARTIALLY_BLOCKED"
                     } else {
                         "ALLOWED"
@@ -820,7 +832,8 @@ pub fn parse_robots(text: &str) -> (RobotsRules, Vec<String>) {
                 let full = if value.starts_with("http") {
                     value.clone()
                 } else {
-                    let idx = line.to_ascii_lowercase().find("sitemap:").unwrap() + "sitemap:".len();
+                    let idx =
+                        line.to_ascii_lowercase().find("sitemap:").unwrap() + "sitemap:".len();
                     line[idx..].trim().to_string()
                 };
                 if !full.is_empty() && !sitemaps.contains(&full) {
@@ -885,9 +898,7 @@ fn llms_validate(url: &str, json: bool) -> CmdResult<ExitCode> {
             link_count = link_re.find_iter(&content).count();
             has_links = link_count > 0;
             if !has_links {
-                issues.push(
-                    "No page links found (use '- [Page Title](url): Description')".into(),
-                );
+                issues.push("No page links found (use '- [Page Title](url): Description')".into());
             }
 
             if link_count < 5 {
@@ -953,12 +964,28 @@ fn llms_validate(url: &str, json: bool) -> CmdResult<ExitCode> {
 }
 
 const LLMS_SECTIONS: &[(&str, &[&str])] = &[
-    ("Products & Services", &["/pricing", "/feature", "/product", "/solution", "/demo"]),
+    (
+        "Products & Services",
+        &["/pricing", "/feature", "/product", "/solution", "/demo"],
+    ),
     (
         "Resources & Blog",
-        &["/blog", "/article", "/resource", "/guide", "/learn", "/docs", "/documentation"],
+        &[
+            "/blog",
+            "/article",
+            "/resource",
+            "/guide",
+            "/learn",
+            "/docs",
+            "/documentation",
+        ],
     ),
-    ("Company", &["/about", "/team", "/career", "/contact", "/press", "/partner"]),
+    (
+        "Company",
+        &[
+            "/about", "/team", "/career", "/contact", "/press", "/partner",
+        ],
+    ),
     ("Support", &["/help", "/support", "/faq", "/status"]),
 ];
 
@@ -1015,7 +1042,9 @@ fn llms_generate(
         if text.chars().count() < 2 {
             continue;
         }
-        let Ok(u) = Url::parse(&link.href) else { continue };
+        let Ok(u) = Url::parse(&link.href) else {
+            continue;
+        };
         let clean = format!(
             "{}://{}{}",
             u.scheme(),
@@ -1026,9 +1055,11 @@ fn llms_generate(
             continue;
         }
         let path = u.path().to_ascii_lowercase();
-        if [".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".css", ".js"]
-            .iter()
-            .any(|ext| path.ends_with(ext))
+        if [
+            ".pdf", ".jpg", ".jpeg", ".png", ".gif", ".svg", ".css", ".js",
+        ]
+        .iter()
+        .any(|ext| path.ends_with(ext))
         {
             continue;
         }
@@ -1044,7 +1075,10 @@ fn llms_generate(
         if (path == "/" || path.is_empty()) && (clean == origin || clean == format!("{origin}/")) {
             continue;
         }
-        buckets.entry(section).or_default().push((text.to_string(), clean));
+        buckets
+            .entry(section)
+            .or_default()
+            .push((text.to_string(), clean));
     }
 
     let order = [
@@ -1055,11 +1089,17 @@ fn llms_generate(
         "Support",
     ];
 
-    let mut concise = vec![format!("# {site_name}"), format!("> {site_description}"), String::new()];
+    let mut concise = vec![
+        format!("# {site_name}"),
+        format!("> {site_description}"),
+        String::new(),
+    ];
     let mut full = concise.clone();
 
     for section in order {
-        let Some(pages) = buckets.get(section) else { continue };
+        let Some(pages) = buckets.get(section) else {
+            continue;
+        };
         if pages.is_empty() {
             continue;
         }
@@ -1099,8 +1139,7 @@ fn llms_generate(
 
     let generated = concise.join("\n");
     let generated_full = full.join("\n");
-    let sections: BTreeMap<&str, usize> =
-        buckets.iter().map(|(k, v)| (*k, v.len())).collect();
+    let sections: BTreeMap<&str, usize> = buckets.iter().map(|(k, v)| (*k, v.len())).collect();
 
     if let Some(path) = output {
         std::fs::write(path, &generated)?;
@@ -1179,7 +1218,9 @@ pub fn collect_sitemap_urls(origin: &str, max_pages: usize) -> Vec<String> {
         visited.push(sitemap_url.clone());
         depth += 1;
 
-        let Ok(resp) = http::get(&sitemap_url, &opts) else { continue };
+        let Ok(resp) = http::get(&sitemap_url, &opts) else {
+            continue;
+        };
         if resp.status != 200 {
             continue;
         }

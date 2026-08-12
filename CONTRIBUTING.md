@@ -25,6 +25,11 @@ tests/              Skill ↔ CLI parity gate
 binary can install them without a checkout. Adding a skill directory is enough
 to ship it — no manifest to update.
 
+The flat `skills/<name>/SKILL.md` layout is also exactly what
+[`npx skills`](https://github.com/vercel-labs/skills) expects, which is how
+`seogeo install --target npx` reaches 75+ agents. Keep the layout flat: a
+nested one changes how that tool discovers skills.
+
 ## Build
 
 ```bash

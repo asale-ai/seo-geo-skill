@@ -66,7 +66,10 @@ pub enum InstallTarget {
     Opencode,
     /// Generic AGENTS.md-based agents — ~/.agents/skills/<name>/
     Agents,
-    /// Every target detected on this machine
+    /// Delegate to `npx skills` — one canonical copy in ~/.agents/skills with
+    /// symlinks for 75+ agents. Needs Node; pinned to this binary's version.
+    Npx,
+    /// Every target this binary writes directly (no Node required)
     All,
 }
 

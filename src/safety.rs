@@ -297,9 +297,9 @@ impl ureq::Resolver for SafeResolver {
                 format!("url_safety: blocked hostname {normalized}"),
             ));
         }
-        let port: u16 = port.parse().map_err(|_| {
-            std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid port")
-        })?;
+        let port: u16 = port
+            .parse()
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "invalid port"))?;
         let mut addrs: Vec<SocketAddr> = (normalized.as_str(), port).to_socket_addrs()?.collect();
         // Try IPv4 first. Plenty of networks advertise IPv6 without working
         // egress, and a host whose AAAA record is unreachable would otherwise

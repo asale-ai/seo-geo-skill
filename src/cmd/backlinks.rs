@@ -120,16 +120,28 @@ pub fn auth(check: Option<&str>, json: bool) -> CmdResult<ExitCode> {
         for (k, v) in out["providers"].as_object().unwrap() {
             println!(
                 "  [{}] {:<12} {}",
-                if v["configured"].as_bool().unwrap_or(false) { "OK " } else { "-- " },
+                if v["configured"].as_bool().unwrap_or(false) {
+                    "OK "
+                } else {
+                    "-- "
+                },
                 k,
                 v["service"].as_str().unwrap_or("")
             );
             if !v["configured"].as_bool().unwrap_or(false) {
-                println!("       set {} — {}", v["env"], v["signup"].as_str().unwrap_or(""));
+                println!(
+                    "       set {} — {}",
+                    v["env"],
+                    v["signup"].as_str().unwrap_or("")
+                );
             }
         }
     }
-    Ok(if all_ok { ExitCode::SUCCESS } else { ExitCode::from(1) })
+    Ok(if all_ok {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(1)
+    })
 }
 
 // -------------------------------------------------------------------- Moz
@@ -217,7 +229,11 @@ pub fn moz(action: MozAction) -> CmdResult<ExitCode> {
             }
             OK
         }
-        MozAction::Domains { target, limit, json } => {
+        MozAction::Domains {
+            target,
+            limit,
+            json,
+        } => {
             let body = json!({
                 "target": moz_target(&target),
                 "target_scope": "root_domain",
@@ -253,7 +269,11 @@ pub fn moz(action: MozAction) -> CmdResult<ExitCode> {
             }
             OK
         }
-        MozAction::Anchors { target, limit, json } => {
+        MozAction::Anchors {
+            target,
+            limit,
+            json,
+        } => {
             let body = json!({
                 "target": moz_target(&target),
                 "target_scope": "root_domain",
@@ -288,7 +308,11 @@ pub fn moz(action: MozAction) -> CmdResult<ExitCode> {
             }
             OK
         }
-        MozAction::Pages { target, limit, json } => {
+        MozAction::Pages {
+            target,
+            limit,
+            json,
+        } => {
             let body = json!({
                 "target": moz_target(&target),
                 "target_scope": "root_domain",
@@ -342,20 +366,14 @@ fn normalize_site(url: &str) -> String {
     let u = coerce_scheme(url);
     Url::parse(&u)
         .ok()
-        .and_then(|p| {
-            p.host_str()
-                .map(|h| format!("{}://{}/", p.scheme(), h))
-        })
+        .and_then(|p| p.host_str().map(|h| format!("{}://{}/", p.scheme(), h)))
         .unwrap_or(u)
 }
 
 fn bing_request(endpoint: &str, api_key: &str, params: &[(&str, String)]) -> CmdResult<Value> {
     let mut url = format!("{BING_BASE}/{endpoint}?apikey={api_key}");
     for (k, v) in params {
-        url.push_str(&format!(
-            "&{k}={}",
-            http::enc(v)
-        ));
+        url.push_str(&format!("&{k}={}", http::enc(v)));
     }
     let resp = http::get(&url, &RequestOptions::with_timeout(30))?;
     let text = resp.text();
@@ -416,7 +434,10 @@ pub fn bing(action: BingAction) -> CmdResult<ExitCode> {
             if json {
                 print_json(&result)?;
             } else {
-                println!("{site}: {total} inbound links across {} pages", entries.len());
+                println!(
+                    "{site}: {total} inbound links across {} pages",
+                    entries.len()
+                );
                 for e in entries.iter().take(30) {
                     println!(
                         "  {:<60} {}",
@@ -483,7 +504,10 @@ fn scan_cc_file(
     reversed: &str,
     max_compressed_bytes: usize,
 ) -> CmdResult<(Vec<Vec<String>>, bool)> {
-    let resp = http::get(url, &RequestOptions::with_timeout(180).max_bytes(max_compressed_bytes))?;
+    let resp = http::get(
+        url,
+        &RequestOptions::with_timeout(180).max_bytes(max_compressed_bytes),
+    )?;
     if !(200..300).contains(&resp.status) {
         return err(format!("Common Crawl file returned HTTP {}", resp.status));
     }
@@ -560,7 +584,10 @@ pub fn commoncrawl(domain: &str, max_scan_mb: usize, json: bool) -> CmdResult<Ex
         println!("Release: {release}");
         match &record {
             Some(m) => {
-                println!("  harmonic centrality rank: {}", m["harmonic_centrality_rank"]);
+                println!(
+                    "  harmonic centrality rank: {}",
+                    m["harmonic_centrality_rank"]
+                );
                 println!("  pagerank rank:            {}", m["pagerank_rank"]);
             }
             None => println!("  not found in the scanned portion of the graph"),
@@ -575,8 +602,8 @@ pub fn commoncrawl(domain: &str, max_scan_mb: usize, json: bool) -> CmdResult<Ex
 // ------------------------------------------------------ backlink verification
 
 pub fn verify(target: &str, links_file: &str, timeout: u64, json: bool) -> CmdResult<ExitCode> {
-    let target_url = Url::parse(&coerce_scheme(target))
-        .map_err(|e| Error(format!("invalid --target: {e}")))?;
+    let target_url =
+        Url::parse(&coerce_scheme(target)).map_err(|e| Error(format!("invalid --target: {e}")))?;
     let target_host = target_url.host_str().unwrap_or_default().to_string();
     let target_host_bare = target_host.trim_start_matches("www.").to_string();
 
@@ -613,7 +640,10 @@ pub fn verify(target: &str, links_file: &str, timeout: u64, json: bool) -> CmdRe
             .filter(|l| {
                 Url::parse(&l.href)
                     .ok()
-                    .and_then(|u| u.host_str().map(|h| h.trim_start_matches("www.").to_string()))
+                    .and_then(|u| {
+                        u.host_str()
+                            .map(|h| h.trim_start_matches("www.").to_string())
+                    })
                     .is_some_and(|h| h == target_host_bare)
             })
             .collect();
@@ -664,13 +694,21 @@ pub fn verify(target: &str, links_file: &str, timeout: u64, json: bool) -> CmdRe
             "Checked {} link(s): {found} present, {followed} followed",
             results.len()
         );
-        for r in &result["results"].as_array().unwrap().iter().collect::<Vec<_>>() {
+        for r in &result["results"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .collect::<Vec<_>>()
+        {
             let mark = match (r["link_found"].as_bool(), r["followed"].as_bool()) {
                 (Some(true), Some(true)) => "OK  ",
                 (Some(true), _) => "NOFO",
                 _ => "MISS",
             };
-            println!("  [{mark}] {}", truncate(r["source"].as_str().unwrap_or(""), 70));
+            println!(
+                "  [{mark}] {}",
+                truncate(r["source"].as_str().unwrap_or(""), 70)
+            );
         }
     }
     Ok(if found == results.len() {
@@ -685,10 +723,10 @@ pub fn verify(target: &str, links_file: &str, timeout: u64, json: bool) -> CmdRe
 /// Structural gate for a backlink report before it goes to a client: every
 /// claimed link needs a source URL, a target, and verification evidence.
 pub fn validate_report(file: &str, json: bool) -> CmdResult<ExitCode> {
-    let raw = std::fs::read_to_string(file)
-        .map_err(|e| Error(format!("could not read {file}: {e}")))?;
-    let data: Value = serde_json::from_str(&raw)
-        .map_err(|e| Error(format!("{file} is not valid JSON: {e}")))?;
+    let raw =
+        std::fs::read_to_string(file).map_err(|e| Error(format!("could not read {file}: {e}")))?;
+    let data: Value =
+        serde_json::from_str(&raw).map_err(|e| Error(format!("{file} is not valid JSON: {e}")))?;
 
     let mut issues: Vec<Value> = Vec::new();
     let mut push = |severity: &str, path: String, message: String| {
@@ -711,7 +749,11 @@ pub fn validate_report(file: &str, json: bool) -> CmdResult<ExitCode> {
     };
 
     if links.is_empty() {
-        push("warning", "$.links".into(), "report contains no links".into());
+        push(
+            "warning",
+            "$.links".into(),
+            "report contains no links".into(),
+        );
     }
 
     let mut sources: BTreeMap<String, usize> = BTreeMap::new();
@@ -726,21 +768,31 @@ pub fn validate_report(file: &str, json: bool) -> CmdResult<ExitCode> {
             Some(s) => {
                 *sources.entry(s.to_string()).or_insert(0) += 1;
                 if Url::parse(s).is_err() {
-                    push("error", path.clone(), format!("source {s:?} is not a valid URL"));
+                    push(
+                        "error",
+                        path.clone(),
+                        format!("source {s:?} is not a valid URL"),
+                    );
                 }
             }
         }
         if link["target"].is_null() && link["target_url"].is_null() {
             push("warning", path.clone(), "no target URL recorded".into());
         }
-        let verified = link["link_found"].as_bool().or_else(|| link["verified"].as_bool());
+        let verified = link["link_found"]
+            .as_bool()
+            .or_else(|| link["verified"].as_bool());
         match verified {
             None => push(
                 "error",
                 path.clone(),
                 "no verification evidence (`link_found` / `verified`)".into(),
             ),
-            Some(false) => push("warning", path.clone(), "link was not found on the source page".into()),
+            Some(false) => push(
+                "warning",
+                path.clone(),
+                "link was not found on the source page".into(),
+            ),
             Some(true) => {}
         }
         if link["followed"].is_null() && link["rel"].is_null() {
@@ -773,7 +825,11 @@ pub fn validate_report(file: &str, json: bool) -> CmdResult<ExitCode> {
     if json {
         print_json(&result)?;
     } else {
-        println!("{file}: {} link(s), {} unique source(s)", links.len(), sources.len());
+        println!(
+            "{file}: {} link(s), {} unique source(s)",
+            links.len(),
+            sources.len()
+        );
         println!("Errors: {errors}   Warnings: {warnings}");
         for i in result["issues"].as_array().unwrap() {
             println!(

@@ -19,31 +19,107 @@ const API_BASE: &str = "https://api.dataforseo.com/v3";
 /// Published list prices in USD per request. Live pricing moves; treat these
 /// as planning estimates and reconcile with `dataforseo-costs log`.
 const PRICES: &[(&str, f64, &str)] = &[
-    ("serp_organic_live_advanced", 0.002, "SERP: organic results, live advanced"),
-    ("serp_organic_live_regular", 0.0006, "SERP: organic results, live regular"),
-    ("serp_ai_mode_live_advanced", 0.006, "SERP: AI Mode, live advanced"),
-    ("serp_google_ai_summary", 0.006, "SERP: AI Overview extraction"),
-    ("keywords_search_volume", 0.05, "Keywords Data: search volume (per 1000 keywords)"),
-    ("keywords_for_keywords", 0.05, "Keywords Data: keyword ideas"),
-    ("keywords_for_site", 0.05, "Keywords Data: keywords for site"),
-    ("dataforseo_labs_keyword_ideas", 0.011, "Labs: keyword ideas"),
-    ("dataforseo_labs_ranked_keywords", 0.011, "Labs: ranked keywords"),
-    ("dataforseo_labs_competitors_domain", 0.011, "Labs: competitor domains"),
-    ("dataforseo_labs_domain_intersection", 0.011, "Labs: keyword gap"),
+    (
+        "serp_organic_live_advanced",
+        0.002,
+        "SERP: organic results, live advanced",
+    ),
+    (
+        "serp_organic_live_regular",
+        0.0006,
+        "SERP: organic results, live regular",
+    ),
+    (
+        "serp_ai_mode_live_advanced",
+        0.006,
+        "SERP: AI Mode, live advanced",
+    ),
+    (
+        "serp_google_ai_summary",
+        0.006,
+        "SERP: AI Overview extraction",
+    ),
+    (
+        "keywords_search_volume",
+        0.05,
+        "Keywords Data: search volume (per 1000 keywords)",
+    ),
+    (
+        "keywords_for_keywords",
+        0.05,
+        "Keywords Data: keyword ideas",
+    ),
+    (
+        "keywords_for_site",
+        0.05,
+        "Keywords Data: keywords for site",
+    ),
+    (
+        "dataforseo_labs_keyword_ideas",
+        0.011,
+        "Labs: keyword ideas",
+    ),
+    (
+        "dataforseo_labs_ranked_keywords",
+        0.011,
+        "Labs: ranked keywords",
+    ),
+    (
+        "dataforseo_labs_competitors_domain",
+        0.011,
+        "Labs: competitor domains",
+    ),
+    (
+        "dataforseo_labs_domain_intersection",
+        0.011,
+        "Labs: keyword gap",
+    ),
     ("backlinks_summary", 0.02, "Backlinks: summary"),
     ("backlinks_backlinks", 0.02, "Backlinks: individual links"),
-    ("backlinks_referring_domains", 0.02, "Backlinks: referring domains"),
+    (
+        "backlinks_referring_domains",
+        0.02,
+        "Backlinks: referring domains",
+    ),
     ("backlinks_anchors", 0.02, "Backlinks: anchor text"),
     ("on_page_task_post", 0.0006, "On-Page: crawl (per page)"),
-    ("on_page_instant_pages", 0.00125, "On-Page: instant page audit"),
+    (
+        "on_page_instant_pages",
+        0.00125,
+        "On-Page: instant page audit",
+    ),
     ("content_analysis_search", 0.02, "Content Analysis: search"),
-    ("business_data_google_my_business", 0.002, "Business Data: GBP info"),
-    ("business_data_google_reviews", 0.0015, "Business Data: reviews"),
-    ("merchant_google_products_search", 0.003, "Merchant: Google Shopping product search"),
-    ("merchant_google_sellers", 0.003, "Merchant: Google Shopping sellers"),
-    ("merchant_amazon_products_search", 0.003, "Merchant: Amazon product search"),
+    (
+        "business_data_google_my_business",
+        0.002,
+        "Business Data: GBP info",
+    ),
+    (
+        "business_data_google_reviews",
+        0.0015,
+        "Business Data: reviews",
+    ),
+    (
+        "merchant_google_products_search",
+        0.003,
+        "Merchant: Google Shopping product search",
+    ),
+    (
+        "merchant_google_sellers",
+        0.003,
+        "Merchant: Google Shopping sellers",
+    ),
+    (
+        "merchant_amazon_products_search",
+        0.003,
+        "Merchant: Amazon product search",
+    ),
     ("merchant_amazon_sellers", 0.003, "Merchant: Amazon sellers"),
-    ("domain_analytics_technologies", 0.011, "Domain Analytics: technologies"),
+    (
+        "domain_analytics_technologies",
+        0.011,
+        "Domain Analytics: technologies",
+    ),
     ("domain_analytics_whois", 0.011, "Domain Analytics: WHOIS"),
 ];
 
@@ -220,7 +296,9 @@ pub fn costs(action: DfsCostAction) -> CmdResult<ExitCode> {
                 print_json(&result)?;
             } else {
                 match budget {
-                    None => println!("No budget set. Set one with: seogeo dataforseo-costs budget --set 10.00"),
+                    None => println!(
+                        "No budget set. Set one with: seogeo dataforseo-costs budget --set 10.00"
+                    ),
                     Some(b) => {
                         println!("Budget:    ${b:.2}");
                         println!("Spent:     ${spent:.5}");
@@ -263,8 +341,8 @@ pub fn costs(action: DfsCostAction) -> CmdResult<ExitCode> {
 /// The API nests every payload under `tasks[].result[].items[]`, and each
 /// module names its fields differently; this collapses both.
 pub fn normalize(file: &str, module: &str, json: bool) -> CmdResult<ExitCode> {
-    let raw = std::fs::read_to_string(file)
-        .map_err(|e| Error(format!("could not read {file}: {e}")))?;
+    let raw =
+        std::fs::read_to_string(file).map_err(|e| Error(format!("could not read {file}: {e}")))?;
     let data: Value = serde_json::from_str(&raw)?;
 
     let status = data["status_code"].as_i64();
@@ -369,9 +447,9 @@ fn credentials() -> CmdResult<String> {
     let login = std::env::var("DATAFORSEO_LOGIN").ok();
     let password = std::env::var("DATAFORSEO_PASSWORD").ok();
     match (login, password) {
-        (Some(l), Some(p)) if !l.is_empty() && !p.is_empty() => Ok(
-            base64::engine::general_purpose::STANDARD.encode(format!("{l}:{p}")),
-        ),
+        (Some(l), Some(p)) if !l.is_empty() && !p.is_empty() => {
+            Ok(base64::engine::general_purpose::STANDARD.encode(format!("{l}:{p}")))
+        }
         _ => err(
             "DataForSEO credentials missing. Set DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD \
              (sign up at https://dataforseo.com).",
@@ -385,7 +463,11 @@ fn dfs_post(path: &str, body: &Value) -> CmdResult<Value> {
     let resp = http::post_json(&format!("{API_BASE}{path}"), body, &opts)?;
     let text = resp.text();
     if !(200..300).contains(&resp.status) {
-        return err(format!("DataForSEO HTTP {}: {}", resp.status, truncate(&text, 400)));
+        return err(format!(
+            "DataForSEO HTTP {}: {}",
+            resp.status,
+            truncate(&text, 400)
+        ));
     }
     let v: Value = serde_json::from_str(&text)?;
     if v["status_code"].as_i64().unwrap_or(0) != 20000 {
@@ -404,7 +486,9 @@ fn merchant_path(marketplace: &str, kind: &str) -> CmdResult<String> {
         ("google", "sellers") => Ok("/merchant/google/sellers/live/advanced".into()),
         ("amazon", "search") => Ok("/merchant/amazon/products/live/advanced".into()),
         ("amazon", "sellers") => Ok("/merchant/amazon/sellers/live/advanced".into()),
-        (m, _) => err(format!("unknown marketplace {m:?}; expected google or amazon")),
+        (m, _) => err(format!(
+            "unknown marketplace {m:?}; expected google or amazon"
+        )),
     }
 }
 
@@ -461,7 +545,8 @@ pub fn merchant(action: DfsMerchantAction) -> CmdResult<ExitCode> {
                     }
                 }
             }
-            let result = json!({"keyword": keyword, "location": location, "marketplaces": per_market});
+            let result =
+                json!({"keyword": keyword, "location": location, "marketplaces": per_market});
             if json {
                 print_json(&result)?;
             } else {
@@ -481,7 +566,11 @@ pub fn merchant(action: DfsMerchantAction) -> CmdResult<ExitCode> {
             json,
         } => {
             let path = merchant_path(&marketplace, "sellers")?;
-            let key = if marketplace == "amazon" { "asin" } else { "product_id" };
+            let key = if marketplace == "amazon" {
+                "asin"
+            } else {
+                "product_id"
+            };
             let body = json!([{
                 key: product_id,
                 "location_name": location,
@@ -541,7 +630,10 @@ fn emit_merchant(raw: &Value, query: &str, marketplace: &str, json: bool) -> Cmd
     if json {
         print_json(&result)?;
     } else {
-        println!("{marketplace}: {} result(s) for {query:?} (${cost:.5})", rows.len());
+        println!(
+            "{marketplace}: {} result(s) for {query:?} (${cost:.5})",
+            rows.len()
+        );
         for r in rows.iter().take(25) {
             println!(
                 "  {:<50} {} {}",

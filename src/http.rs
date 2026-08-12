@@ -89,7 +89,9 @@ impl Response {
     }
 
     pub fn header(&self, name: &str) -> Option<&str> {
-        self.headers.get(&name.to_ascii_lowercase()).map(|s| s.as_str())
+        self.headers
+            .get(&name.to_ascii_lowercase())
+            .map(|s| s.as_str())
     }
 }
 
@@ -142,7 +144,12 @@ fn charset_from_meta(raw: &[u8]) -> Option<String> {
             let rest = rest.trim_start().trim_start_matches(['"', '\'']);
             let end = rest
                 .find(|c: char| {
-                    c == ';' || c == ',' || c == '"' || c == '\'' || c == '/' || c == '>'
+                    c == ';'
+                        || c == ','
+                        || c == '"'
+                        || c == '\''
+                        || c == '/'
+                        || c == '>'
                         || c.is_whitespace()
                 })
                 .unwrap_or(rest.len());
@@ -166,7 +173,13 @@ fn charset_from_meta(raw: &[u8]) -> Option<String> {
 /// guarantee does not extend through a proxy, because the proxy resolves the
 /// hostname itself.
 fn configured_proxy() -> Option<ureq::Proxy> {
-    for var in ["SEOGEO_PROXY", "HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"] {
+    for var in [
+        "SEOGEO_PROXY",
+        "HTTPS_PROXY",
+        "https_proxy",
+        "ALL_PROXY",
+        "all_proxy",
+    ] {
         if let Ok(value) = std::env::var(var) {
             let value = value.trim();
             if value.is_empty() {
@@ -281,7 +294,11 @@ pub fn post_json(
     request("POST", url, &opts, Some(payload))
 }
 
-pub fn post_form(url: &str, form: &[(&str, &str)], opts: &RequestOptions) -> Result<Response, HttpError> {
+pub fn post_form(
+    url: &str,
+    form: &[(&str, &str)],
+    opts: &RequestOptions,
+) -> Result<Response, HttpError> {
     let body = form
         .iter()
         .map(|(k, v)| {
@@ -366,4 +383,3 @@ fn request(
     }
     Ok(response)
 }
-

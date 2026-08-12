@@ -69,8 +69,7 @@ pub struct ParsedPage {
 
 const PERFMATTERS_ATTRS: &[&str] = &["data-perfmatters-src", "data-perfmatters-srcset"];
 const EWWW_ATTRS: &[&str] = &["data-ewww-src", "data-eio"];
-const GENERIC_LAZY_ATTRS: &[&str] =
-    &["data-src", "data-lazy-src", "data-original", "data-srcset"];
+const GENERIC_LAZY_ATTRS: &[&str] = &["data-src", "data-lazy-src", "data-original", "data-srcset"];
 const PERFMATTERS_CLASSES: &[&str] = &["perfmatters-lazy", "perfmatters-lazy-loaded"];
 const EWWW_CLASSES: &[&str] = &["lazyload-eio", "lazyloaded-eio"];
 const GENERIC_LAZY_CLASSES: &[&str] = &["lazyload", "lazyloaded", "lazy", "lazy-loaded"];
@@ -90,9 +89,17 @@ fn detect_lazy_method(el: &ElementRef) -> String {
     let classes: Vec<String> = el
         .value()
         .attr("class")
-        .map(|c| c.split_whitespace().map(|s| s.to_ascii_lowercase()).collect())
+        .map(|c| {
+            c.split_whitespace()
+                .map(|s| s.to_ascii_lowercase())
+                .collect()
+        })
         .unwrap_or_default();
-    let has_attr = |names: &[&str]| names.iter().any(|n| el.value().attr(n).is_some_and(|v| !v.is_empty()));
+    let has_attr = |names: &[&str]| {
+        names
+            .iter()
+            .any(|n| el.value().attr(n).is_some_and(|v| !v.is_empty()))
+    };
     let has_class = |names: &[&str]| names.iter().any(|n| classes.iter().any(|c| c == n));
 
     if has_attr(PERFMATTERS_ATTRS) || has_class(PERFMATTERS_CLASSES) {
@@ -143,7 +150,11 @@ pub fn parse(html: &str, base_url: Option<&str>) -> ParsedPage {
     }
 
     for meta in doc.select(&sel("meta")) {
-        let name = meta.value().attr("name").unwrap_or_default().to_ascii_lowercase();
+        let name = meta
+            .value()
+            .attr("name")
+            .unwrap_or_default()
+            .to_ascii_lowercase();
         let property = meta
             .value()
             .attr("property")
@@ -353,7 +364,9 @@ pub struct ContentBlock {
 pub fn content_blocks(html: &str, min_words: usize) -> Vec<ContentBlock> {
     let stripped = strip_non_content(
         html,
-        &["script", "style", "nav", "footer", "header", "aside", "form", "noscript"],
+        &[
+            "script", "style", "nav", "footer", "header", "aside", "form", "noscript",
+        ],
     );
     let doc = Html::parse_document(&stripped);
 
@@ -411,8 +424,15 @@ pub fn ssr_assessment(html: &str, page_word_count: usize) -> (bool, Vec<String>)
     let mut issues = Vec::new();
     let mut has_ssr = true;
     for el in doc.select(&sel("[id]")) {
-        let id = el.value().attr("id").unwrap_or_default().to_ascii_lowercase();
-        if !(id.contains("app") || id.contains("root") || id.contains("__next") || id.contains("__nuxt"))
+        let id = el
+            .value()
+            .attr("id")
+            .unwrap_or_default()
+            .to_ascii_lowercase();
+        if !(id.contains("app")
+            || id.contains("root")
+            || id.contains("__next")
+            || id.contains("__nuxt"))
         {
             continue;
         }

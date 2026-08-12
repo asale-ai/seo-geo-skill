@@ -196,7 +196,9 @@ pub fn analyse(text: &str) -> QualityReport {
 
     // Scale to per-1000 tokens so scores are comparable across page lengths.
     let scale = (n_tokens as f64 / 1000.0).max(1.0);
-    let filler_score = ((filler_hits.len() as f64 / scale) * 25.0).round().min(100.0) as i64;
+    let filler_score = ((filler_hits.len() as f64 / scale) * 25.0)
+        .round()
+        .min(100.0) as i64;
     let ai_pattern_score = ((ai_hits.len() as f64 / scale) * 15.0).round().min(100.0) as i64;
 
     let mut flags = Vec::new();
@@ -252,19 +254,37 @@ pub fn quality(source: &str, threshold: i64, json: bool) -> CmdResult<ExitCode> 
         print_json(&result)?;
     } else {
         println!("Overall quality:       {}/100", result.overall_quality);
-        println!("  Filler score:        {}/100 (higher = worse)", result.filler_score);
-        println!("  AI-pattern score:    {}/100 (higher = worse)", result.ai_pattern_score);
+        println!(
+            "  Filler score:        {}/100 (higher = worse)",
+            result.filler_score
+        );
+        println!(
+            "  AI-pattern score:    {}/100 (higher = worse)",
+            result.ai_pattern_score
+        );
         println!("  Information density: {:.2}", result.information_density);
-        println!("  Repetition:          {}/100 (higher = worse)", result.repetition_score);
-        println!("  Tokens:              {} ({} unique)", result.tokens, result.unique_tokens);
+        println!(
+            "  Repetition:          {}/100 (higher = worse)",
+            result.repetition_score
+        );
+        println!(
+            "  Tokens:              {} ({} unique)",
+            result.tokens, result.unique_tokens
+        );
         if !result.flags.is_empty() {
             println!("  Flags:               {}", result.flags.join(", "));
         }
         if !result.matches.filler.is_empty() {
-            println!("  Filler hits:         {}", result.matches.filler.join(", "));
+            println!(
+                "  Filler hits:         {}",
+                result.matches.filler.join(", ")
+            );
         }
         if !result.matches.ai_patterns.is_empty() {
-            println!("  AI-pattern hits:     {}", result.matches.ai_patterns.join(", "));
+            println!(
+                "  AI-pattern hits:     {}",
+                result.matches.ai_patterns.join(", ")
+            );
         }
     }
 
@@ -280,37 +300,109 @@ pub fn quality(source: &str, threshold: i64, json: bool) -> CmdResult<ExitCode> 
 /// `(pattern, replacement, label)`. Every swap is deterministic and 1:1;
 /// unknown idiom is left alone rather than paraphrased.
 const REPLACEMENTS: &[(&str, &str, &str)] = &[
-    (r"(?i)\bdelve\s+deeper\s+into\b", "explore", "delve-deeper-into"),
+    (
+        r"(?i)\bdelve\s+deeper\s+into\b",
+        "explore",
+        "delve-deeper-into",
+    ),
     (r"(?i)\bdelve\s+into\b", "explore", "delve-into"),
-    (r"(?i)\bin\s+the\s+ever-evolving\s+landscape\s+of\b", "in", "ever-evolving-landscape"),
-    (r"(?i)\bin\s+the\s+ever-evolving\s+world\s+of\b", "in", "ever-evolving-world"),
+    (
+        r"(?i)\bin\s+the\s+ever-evolving\s+landscape\s+of\b",
+        "in",
+        "ever-evolving-landscape",
+    ),
+    (
+        r"(?i)\bin\s+the\s+ever-evolving\s+world\s+of\b",
+        "in",
+        "ever-evolving-world",
+    ),
     (r"(?i)\bever-evolving\b", "changing", "ever-evolving"),
     (r"(?i)\bever-changing\b", "changing", "ever-changing"),
-    (r"(?i)\bnavigating\s+the\s+complexities\s+of\b", "handling", "navigating-complexities"),
+    (
+        r"(?i)\bnavigating\s+the\s+complexities\s+of\b",
+        "handling",
+        "navigating-complexities",
+    ),
     (r"(?i)\btapestry\s+of\b", "range of", "tapestry-of"),
-    (r"(?i)\b(?:rich|intricate|complex)\s+tapestry\b", "range", "rich-tapestry"),
-    (r"(?i)\bembark\s+on\s+a\s+journey\b", "begin", "embark-journey"),
+    (
+        r"(?i)\b(?:rich|intricate|complex)\s+tapestry\b",
+        "range",
+        "rich-tapestry",
+    ),
+    (
+        r"(?i)\bembark\s+on\s+a\s+journey\b",
+        "begin",
+        "embark-journey",
+    ),
     (r"(?i)\ba\s+testament\s+to\b", "evidence of", "testament-to"),
     (r"(?i)\ba\s+beacon\s+of\b", "a leader in", "beacon-of"),
-    (r"(?i)\b(?:the\s+|a\s+)?cornerstone\s+of\b", "central to", "cornerstone-of"),
-    (r"(?i)\bat\s+the\s+heart\s+of\b", "central to", "at-the-heart-of"),
+    (
+        r"(?i)\b(?:the\s+|a\s+)?cornerstone\s+of\b",
+        "central to",
+        "cornerstone-of",
+    ),
+    (
+        r"(?i)\bat\s+the\s+heart\s+of\b",
+        "central to",
+        "at-the-heart-of",
+    ),
     (r"(?i)\bin\s+essence,\s*", "", "in-essence"),
     (r"(?i)\bin\s+conclusion,\s*", "", "in-conclusion"),
     (r"(?i)\bultimately,\s*", "", "ultimately-comma"),
     (r"(?i)\bmoreover,\s*", "", "moreover-comma"),
     (r"(?i)\bfurthermore,\s*", "", "furthermore-comma"),
-    (r"(?i)\bhowever,\s+it(?:'?s|\s+is)\s+worth\s+noting\s+that\b", "however,", "worth-noting-clause"),
-    (r"(?i)\bit(?:'?s|\s+is)\s+worth\s+noting\s+that\b", "note:", "worth-noting"),
+    (
+        r"(?i)\bhowever,\s+it(?:'?s|\s+is)\s+worth\s+noting\s+that\b",
+        "however,",
+        "worth-noting-clause",
+    ),
+    (
+        r"(?i)\bit(?:'?s|\s+is)\s+worth\s+noting\s+that\b",
+        "note:",
+        "worth-noting",
+    ),
     (r"(?i)\bby\s+leveraging\b", "by using", "by-leveraging"),
-    (r"(?i)\bleverage\s+the\s+power\s+of\b", "use", "leverage-power"),
-    (r"(?i)\bleveraging\s+the\s+power\s+of\b", "using", "leveraging-power"),
-    (r"(?i)\bharness\s+the\s+power\s+of\b", "use", "harness-power"),
-    (r"(?i)\bunlock\s+(?:the\s+(?:full\s+)?)?potential\b", "use", "unlock-potential"),
-    (r"(?i)\bopen\s+up\s+a\s+world\s+of\b", "enable", "open-world"),
-    (r"(?i)\ba\s+world\s+of\s+possibilities\b", "options", "world-possibilities"),
+    (
+        r"(?i)\bleverage\s+the\s+power\s+of\b",
+        "use",
+        "leverage-power",
+    ),
+    (
+        r"(?i)\bleveraging\s+the\s+power\s+of\b",
+        "using",
+        "leveraging-power",
+    ),
+    (
+        r"(?i)\bharness\s+the\s+power\s+of\b",
+        "use",
+        "harness-power",
+    ),
+    (
+        r"(?i)\bunlock\s+(?:the\s+(?:full\s+)?)?potential\b",
+        "use",
+        "unlock-potential",
+    ),
+    (
+        r"(?i)\bopen\s+up\s+a\s+world\s+of\b",
+        "enable",
+        "open-world",
+    ),
+    (
+        r"(?i)\ba\s+world\s+of\s+possibilities\b",
+        "options",
+        "world-possibilities",
+    ),
     (r"(?i)\belevate\s+your\b", "improve your", "elevate-your"),
-    (r"(?i)\btransform\s+your\b", "improve your", "transform-your"),
-    (r"(?i)\brevolutionize\s+the\s+way\b", "change how", "revolutionize-the-way"),
+    (
+        r"(?i)\btransform\s+your\b",
+        "improve your",
+        "transform-your",
+    ),
+    (
+        r"(?i)\brevolutionize\s+the\s+way\b",
+        "change how",
+        "revolutionize-the-way",
+    ),
     (r"(?i)\bgame-?changer\b", "major advance", "game-changer"),
     (r"(?i)\bcutting-?edge\b", "modern", "cutting-edge"),
     (r"(?i)\bstate-of-the-art\b", "modern", "state-of-the-art"),
@@ -318,19 +410,43 @@ const REPLACEMENTS: &[(&str, &str, &str)] = &[
     (r"(?i)\bto\s+summarize,\s*", "", "to-summarize"),
     (r"(?i)\bto\s+put\s+it\s+simply,\s*", "", "to-put-simply"),
     (r"(?i)\bin\s+a\s+nutshell,\s*", "", "in-nutshell"),
-    (r"(?i)\bit(?:'?s|\s+is)\s+important\s+to\s+note\s+that\b", "note:", "important-note"),
+    (
+        r"(?i)\bit(?:'?s|\s+is)\s+important\s+to\s+note\s+that\b",
+        "note:",
+        "important-note",
+    ),
     (
         r"(?i)\bin\s+today'?s\s+(?:fast-paced|digital|competitive)\s+(?:world|age|landscape)\b",
         "today",
         "today-cliche",
     ),
     (r"(?i)\bneedless\s+to\s+say,?\s*", "", "needless-to-say"),
-    (r"(?i)\bat\s+the\s+end\s+of\s+the\s+day\b", "ultimately", "end-of-the-day"),
+    (
+        r"(?i)\bat\s+the\s+end\s+of\s+the\s+day\b",
+        "ultimately",
+        "end-of-the-day",
+    ),
     (r"(?i)\bwhen\s+it\s+comes\s+to\b", "for", "when-it-comes-to"),
-    (r"(?i)\bfirst\s+and\s+foremost,?\s*", "first,", "first-and-foremost"),
-    (r"(?i)\blast\s+but\s+not\s+least,?\s*", "finally,", "last-but-not-least"),
-    (r"(?i)\blet'?s\s+dive\s+(?:in|into)\b", "starting with", "let-us-dive"),
-    (r"(?i)\blet'?s\s+take\s+a\s+(?:closer|deeper)\s+look\b", "look at", "let-us-take-look"),
+    (
+        r"(?i)\bfirst\s+and\s+foremost,?\s*",
+        "first,",
+        "first-and-foremost",
+    ),
+    (
+        r"(?i)\blast\s+but\s+not\s+least,?\s*",
+        "finally,",
+        "last-but-not-least",
+    ),
+    (
+        r"(?i)\blet'?s\s+dive\s+(?:in|into)\b",
+        "starting with",
+        "let-us-dive",
+    ),
+    (
+        r"(?i)\blet'?s\s+take\s+a\s+(?:closer|deeper)\s+look\b",
+        "look at",
+        "let-us-take-look",
+    ),
 ];
 
 #[derive(Serialize)]
@@ -437,11 +553,20 @@ pub fn humanize(source: &str, output: Option<&str>, json: bool) -> CmdResult<Exi
 /// Claim patterns, most specific first — the first match wins for a given
 /// span so "47% of marketers" is not double-counted as statistic + quantity.
 const CLAIM_PATTERNS: &[(&str, &str)] = &[
-    (r"(?i)\b\d+(?:\.\d+)?\s*%\s+of\s+[a-zA-Z]+(?:\s+[a-zA-Z]+){0,4}", "statistic"),
+    (
+        r"(?i)\b\d+(?:\.\d+)?\s*%\s+of\s+[a-zA-Z]+(?:\s+[a-zA-Z]+){0,4}",
+        "statistic",
+    ),
     (r"\b\d+(?:\.\d+)?\s*%", "statistic"),
-    (r"(?i)\$\s?\d+(?:\.\d+)?\s*(?:million|billion|trillion|k|M|B)\b", "quantity"),
+    (
+        r"(?i)\$\s?\d+(?:\.\d+)?\s*(?:million|billion|trillion|k|M|B)\b",
+        "quantity",
+    ),
     (r"(?i)\b\d{1,3}(?:,\d{3})+(?:\.\d+)?\s+\w+", "quantity"),
-    (r"(?i)\b\d+(?:\.\d+)?\s*(?:million|billion|trillion)\b", "quantity"),
+    (
+        r"(?i)\b\d+(?:\.\d+)?\s*(?:million|billion|trillion)\b",
+        "quantity",
+    ),
     (
         r"\baccording\s+to\s+(?:a\s+)?(?:[A-Z][a-z]+\s+){1,4}(?:study|report|survey|analysis|paper)\b",
         "authority",
@@ -508,9 +633,9 @@ pub fn extract_claims(text: &str) -> Vec<Claim> {
     for (pattern, label) in CLAIM_PATTERNS {
         let re = Regex::new(pattern).expect("static regex");
         for m in re.find_iter(text) {
-            let overlaps = spans
-                .iter()
-                .any(|(s, e, _)| (*s <= m.start() && m.start() < *e) || (*s < m.end() && m.end() <= *e));
+            let overlaps = spans.iter().any(|(s, e, _)| {
+                (*s <= m.start() && m.start() < *e) || (*s < m.end() && m.end() <= *e)
+            });
             if overlaps {
                 continue;
             }

@@ -49,22 +49,55 @@ macro_rules! lazy_re {
     };
 }
 
-lazy_re!(re_definition, r"(?i)\b\w+\s+is\s+(?:a|an|the)\s|\b\w+\s+refers?\s+to\s|\b\w+\s+means?\s|\b\w+\s+(?:can be |are )?defined\s+as\s|\bin\s+(?:simple|other)\s+(?:terms|words)\s*,");
-lazy_re!(re_early_answer, r"(?i)\b(?:is|are|was|were|means?|refers?)\b|\d+%|\$[\d,]+|\d+\s+(?:million|billion|thousand)");
-lazy_re!(re_research, r"(?i)(?:according to|research shows|studies? (?:show|indicate|suggest|found)|data (?:shows|indicates|suggests))");
-lazy_re!(re_pronouns, r"(?i)\b(?:it|they|them|their|this|that|these|those|he|she|his|her)\b");
+lazy_re!(
+    re_definition,
+    r"(?i)\b\w+\s+is\s+(?:a|an|the)\s|\b\w+\s+refers?\s+to\s|\b\w+\s+means?\s|\b\w+\s+(?:can be |are )?defined\s+as\s|\bin\s+(?:simple|other)\s+(?:terms|words)\s*,"
+);
+lazy_re!(
+    re_early_answer,
+    r"(?i)\b(?:is|are|was|were|means?|refers?)\b|\d+%|\$[\d,]+|\d+\s+(?:million|billion|thousand)"
+);
+lazy_re!(
+    re_research,
+    r"(?i)(?:according to|research shows|studies? (?:show|indicate|suggest|found)|data (?:shows|indicates|suggests))"
+);
+lazy_re!(
+    re_pronouns,
+    r"(?i)\b(?:it|they|them|their|this|that|these|those|he|she|his|her)\b"
+);
 lazy_re!(re_proper_nouns, r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b");
-lazy_re!(re_sequence, r"(?i)(?:first|second|third|finally|additionally|moreover|furthermore)");
-lazy_re!(re_enumerated, r"(?i)(?:\d+[.)]\s|\b(?:step|tip|point)\s+\d+)");
+lazy_re!(
+    re_sequence,
+    r"(?i)(?:first|second|third|finally|additionally|moreover|furthermore)"
+);
+lazy_re!(
+    re_enumerated,
+    r"(?i)(?:\d+[.)]\s|\b(?:step|tip|point)\s+\d+)"
+);
 lazy_re!(re_percent, r"\d+(?:\.\d+)?%");
-lazy_re!(re_dollar, r"(?i)\$[\d,]+(?:\.\d+)?(?:\s*(?:million|billion|M|B|K))?");
-lazy_re!(re_counted_nouns, r"(?i)\b\d+(?:,\d{3})*(?:\.\d+)?\s+(?:users|customers|pages|sites|companies|businesses|people|percent|times|x\b)");
+lazy_re!(
+    re_dollar,
+    r"(?i)\$[\d,]+(?:\.\d+)?(?:\s*(?:million|billion|M|B|K))?"
+);
+lazy_re!(
+    re_counted_nouns,
+    r"(?i)\b\d+(?:,\d{3})*(?:\.\d+)?\s+(?:users|customers|pages|sites|companies|businesses|people|percent|times|x\b)"
+);
 lazy_re!(re_recent_year, r"\b20(?:2[3-9]|3\d|1\d)\b");
 lazy_re!(re_source_attr, r"(?:according to|per|from|by)\s+[A-Z]");
-lazy_re!(re_source_org, r"(?:Gartner|Forrester|McKinsey|Harvard|Stanford|MIT|Google|Microsoft|OpenAI|Anthropic)");
+lazy_re!(
+    re_source_org,
+    r"(?:Gartner|Forrester|McKinsey|Harvard|Stanford|MIT|Google|Microsoft|OpenAI|Anthropic)"
+);
 lazy_re!(re_source_paren, r"\([A-Z][a-z]+(?:\s+\d{4})?\)");
-lazy_re!(re_original_data, r"(?i)(?:our (?:research|study|data|analysis|survey|findings)|we (?:found|discovered|analyzed|surveyed|measured))");
-lazy_re!(re_case_study, r"(?i)(?:case study|for example|for instance|in practice|real-world|hands-on)");
+lazy_re!(
+    re_original_data,
+    r"(?i)(?:our (?:research|study|data|analysis|survey|findings)|we (?:found|discovered|analyzed|surveyed|measured))"
+);
+lazy_re!(
+    re_case_study,
+    r"(?i)(?:case study|for example|for instance|in practice|real-world|hands-on)"
+);
 lazy_re!(re_tool_mention, r"(?:using|with|via|through)\s+[A-Z][a-z]+");
 
 /// Score one passage 0-100 for how likely an answer engine is to quote it.
@@ -251,8 +284,7 @@ pub fn citability(url: Option<&str>, file: Option<&str>, json: bool) -> CmdResul
     let (avg, top, bottom, optimal) = if scored.is_empty() {
         (0.0, Vec::new(), Vec::new(), 0)
     } else {
-        let avg =
-            scored.iter().map(|s| s.total_score).sum::<i64>() as f64 / scored.len() as f64;
+        let avg = scored.iter().map(|s| s.total_score).sum::<i64>() as f64 / scored.len() as f64;
         let mut sorted = scored.clone();
         sorted.sort_by_key(|s| std::cmp::Reverse(s.total_score));
         let top: Vec<PassageScore> = sorted.iter().take(5).cloned().collect();
@@ -290,7 +322,10 @@ pub fn citability(url: Option<&str>, file: Option<&str>, json: bool) -> CmdResul
         println!("Blocks analysed:   {}", scored.len());
         println!("Average score:     {:.1}/100", avg);
         println!("Optimal-length:    {optimal}");
-        println!("Grades:            {}", serde_json::to_string(&result["grade_distribution"])?);
+        println!(
+            "Grades:            {}",
+            serde_json::to_string(&result["grade_distribution"])?
+        );
         println!("\nTop passages:");
         for s in &top {
             println!(
@@ -481,13 +516,34 @@ pub fn brand_scan(brand: &str, domain: Option<&str>, json: bool) -> CmdResult<Ex
     });
 
     let other_platforms = [
-        ("Quora", format!("https://www.quora.com/search?q={}", enc(brand))),
-        ("Stack Overflow", format!("https://stackoverflow.com/search?q={}", enc(brand))),
-        ("GitHub", format!("https://github.com/search?q={}", enc(brand))),
-        ("Crunchbase", format!("https://www.crunchbase.com/textsearch?q={}", enc(brand))),
-        ("Product Hunt", format!("https://www.producthunt.com/search?q={}", enc(brand))),
-        ("G2", format!("https://www.g2.com/search?query={}", enc(brand))),
-        ("Trustpilot", format!("https://www.trustpilot.com/search?query={}", enc(brand))),
+        (
+            "Quora",
+            format!("https://www.quora.com/search?q={}", enc(brand)),
+        ),
+        (
+            "Stack Overflow",
+            format!("https://stackoverflow.com/search?q={}", enc(brand)),
+        ),
+        (
+            "GitHub",
+            format!("https://github.com/search?q={}", enc(brand)),
+        ),
+        (
+            "Crunchbase",
+            format!("https://www.crunchbase.com/textsearch?q={}", enc(brand)),
+        ),
+        (
+            "Product Hunt",
+            format!("https://www.producthunt.com/search?q={}", enc(brand)),
+        ),
+        (
+            "G2",
+            format!("https://www.g2.com/search?query={}", enc(brand)),
+        ),
+        (
+            "Trustpilot",
+            format!("https://www.trustpilot.com/search?query={}", enc(brand)),
+        ),
     ];
     let mut checked = serde_json::Map::new();
     for (name, url) in &other_platforms {

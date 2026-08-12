@@ -44,9 +44,8 @@ pub fn preload(url: &str, json: bool) -> CmdResult<ExitCode> {
     let body = rec.content.unwrap_or_default();
     let headers = rec.headers;
 
-    let spec_block = re(
-        r#"(?is)<script\b[^>]*\btype\s*=\s*["']speculationrules["'][^>]*>(.*?)</script>"#,
-    );
+    let spec_block =
+        re(r#"(?is)<script\b[^>]*\btype\s*=\s*["']speculationrules["'][^>]*>(.*?)</script>"#);
     let blocks: Vec<String> = spec_block
         .captures_iter(&body)
         .map(|c| c[1].to_string())
@@ -55,7 +54,8 @@ pub fn preload(url: &str, json: bool) -> CmdResult<ExitCode> {
     for b in &blocks {
         if let Ok(v) = serde_json::from_str::<serde_json::Value>(b.trim()) {
             for a in ["prefetch", "prerender"] {
-                if v.get(a).and_then(|x| x.as_array()).is_some() && !actions.contains(&a.to_string())
+                if v.get(a).and_then(|x| x.as_array()).is_some()
+                    && !actions.contains(&a.to_string())
                 {
                     actions.push(a.to_string());
                 }
@@ -74,10 +74,8 @@ pub fn preload(url: &str, json: bool) -> CmdResult<ExitCode> {
     let fetchpriority_count = re(r#"(?i)\bfetchpriority\s*=\s*["']high["']"#)
         .find_iter(&body)
         .count();
-    let lcp_img_hint = re(
-        r#"(?is)<(?:img|video|source)\b[^>]*\bfetchpriority\s*=\s*["']high["']"#,
-    )
-    .is_match(&body);
+    let lcp_img_hint = re(r#"(?is)<(?:img|video|source)\b[^>]*\bfetchpriority\s*=\s*["']high["']"#)
+        .is_match(&body);
 
     let cc = headers.get("cache-control").cloned().unwrap_or_default();
     let cache_control_no_store = cc.to_ascii_lowercase().contains("no-store");
@@ -316,7 +314,9 @@ pub fn parasite_risk(urls: &[String], urls_file: Option<&str>, json: bool) -> Cm
 
     let mut summary: BTreeMap<&str, usize> = BTreeMap::new();
     for value in sections.values() {
-        *summary.entry(value["risk"].as_str().unwrap_or("low")).or_insert(0) += 1;
+        *summary
+            .entry(value["risk"].as_str().unwrap_or("low"))
+            .or_insert(0) += 1;
     }
     let overall = if summary.get("high").copied().unwrap_or(0) > 0 {
         "high"
@@ -348,9 +348,15 @@ pub fn parasite_risk(urls: &[String], urls_file: Option<&str>, json: bool) -> Cm
                 value["page_count"],
                 value["risk"].as_str().unwrap_or("?")
             );
-            println!("    third-party/page: {}", value["third_party_hits_per_page"]);
+            println!(
+                "    third-party/page: {}",
+                value["third_party_hits_per_page"]
+            );
             println!("    commerce/page:    {}", value["commerce_hits_per_page"]);
-            println!("    affiliate/page:   {}", value["affiliate_link_hits_per_page"]);
+            println!(
+                "    affiliate/page:   {}",
+                value["affiliate_link_hits_per_page"]
+            );
         }
     }
     code(overall != "high")
@@ -359,11 +365,26 @@ pub fn parasite_risk(urls: &[String], urls_file: Option<&str>, json: bool) -> Cm
 // ---------------------------------------------------------------- UCP check
 
 const KNOWN_CAPABILITIES: &[(&str, &str)] = &[
-    ("dev.ucp.shopping.checkout", "Initiate checkout, return totals + payment intent"),
-    ("dev.ucp.shopping.fulfillment", "Quote shipping options + delivery windows"),
-    ("dev.ucp.shopping.discount", "Apply promo codes / loyalty discounts"),
-    ("dev.ucp.shopping.cart", "Add / remove / update items in agent-managed carts"),
-    ("dev.ucp.shopping.catalog", "Search / list products via agent queries"),
+    (
+        "dev.ucp.shopping.checkout",
+        "Initiate checkout, return totals + payment intent",
+    ),
+    (
+        "dev.ucp.shopping.fulfillment",
+        "Quote shipping options + delivery windows",
+    ),
+    (
+        "dev.ucp.shopping.discount",
+        "Apply promo codes / loyalty discounts",
+    ),
+    (
+        "dev.ucp.shopping.cart",
+        "Add / remove / update items in agent-managed carts",
+    ),
+    (
+        "dev.ucp.shopping.catalog",
+        "Search / list products via agent queries",
+    ),
     ("dev.ucp.shopping.order", "Order status, lookup, history"),
     ("dev.ucp.shopping.returns", "Return initiation + status"),
 ];
@@ -435,7 +456,10 @@ pub fn ucp(site: &str, probe: bool, timeout: u64, json: bool) -> CmdResult<ExitC
         .as_array()
         .map(|a| a.len())
         .unwrap_or(0);
-    let n_issues = parsed_profile["issues"].as_array().map(|a| a.len()).unwrap_or(0);
+    let n_issues = parsed_profile["issues"]
+        .as_array()
+        .map(|a| a.len())
+        .unwrap_or(0);
     report["summary"] = json!(format!(
         "profile-found: {n_caps} capabilities, {n_issues} structural issues"
     ));
@@ -446,7 +470,10 @@ pub fn ucp(site: &str, probe: bool, timeout: u64, json: bool) -> CmdResult<ExitC
         println!("Site: {site}");
         println!("Discovery: {discovery}");
         println!("Status: {}", report["status_code"]);
-        println!("Summary: {}", report["summary"].as_str().unwrap_or_default());
+        println!(
+            "Summary: {}",
+            report["summary"].as_str().unwrap_or_default()
+        );
         if let Some(caps) = parsed_profile["capabilities"].as_array() {
             println!("Capabilities ({}):", caps.len());
             for c in caps {
@@ -514,7 +541,11 @@ fn parse_ucp_profile(payload: &str) -> serde_json::Value {
             serde_json::Value::Null
         }
         Some(m) if m.is_object() => {
-            if m.get("name").and_then(|n| n.as_str()).unwrap_or("").is_empty() {
+            if m.get("name")
+                .and_then(|n| n.as_str())
+                .unwrap_or("")
+                .is_empty()
+            {
                 issues.push("merchant-name-empty".into());
             }
             json!({"name": m.get("name"), "id": m.get("id")})
@@ -580,7 +611,9 @@ fn probe_endpoint(url: &str, timeout: u64) -> serde_json::Value {
             "status_code": r.status,
             "error": null,
         }),
-        Err(e) => json!({"url": url, "reachable": false, "status_code": null, "error": e.to_string()}),
+        Err(e) => {
+            json!({"url": url, "reachable": false, "status_code": null, "error": e.to_string()})
+        }
     }
 }
 
@@ -604,7 +637,10 @@ pub fn gbp_lint(source: &str, is_file: bool, json: bool) -> CmdResult<ExitCode> 
     );
     let business_site = re(r#"(?i)https?://[^/\s"']+\.business\.site(?:/[^\s"']*)?"#);
 
-    let mut chat_hits: Vec<String> = chat.find_iter(&body).map(|m| m.as_str().to_string()).collect();
+    let mut chat_hits: Vec<String> = chat
+        .find_iter(&body)
+        .map(|m| m.as_str().to_string())
+        .collect();
     chat_hits.sort();
     chat_hits.dedup();
     let mut site_hits: Vec<String> = business_site
@@ -634,8 +670,14 @@ pub fn gbp_lint(source: &str, is_file: bool, json: bool) -> CmdResult<ExitCode> 
         }));
     }
 
-    let critical = findings.iter().filter(|f| f["severity"] == "Critical").count();
-    let medium = findings.iter().filter(|f| f["severity"] == "Medium").count();
+    let critical = findings
+        .iter()
+        .filter(|f| f["severity"] == "Critical")
+        .count();
+    let medium = findings
+        .iter()
+        .filter(|f| f["severity"] == "Medium")
+        .count();
     let ok = findings.is_empty();
 
     let result = json!({
@@ -695,8 +737,12 @@ fn whois_query(server: &str, query: &str) -> Option<String> {
     use std::time::Duration;
     let addr = format!("{server}:43");
     let mut stream = TcpStream::connect(&addr).ok()?;
-    stream.set_read_timeout(Some(Duration::from_secs(10))).ok()?;
-    stream.set_write_timeout(Some(Duration::from_secs(10))).ok()?;
+    stream
+        .set_read_timeout(Some(Duration::from_secs(10)))
+        .ok()?;
+    stream
+        .set_write_timeout(Some(Duration::from_secs(10)))
+        .ok()?;
     stream.write_all(format!("{query}\r\n").as_bytes()).ok()?;
     let mut buf = Vec::new();
     stream.read_to_end(&mut buf).ok()?;
@@ -923,7 +969,10 @@ pub fn agent_ux(url: &str, json: bool) -> CmdResult<ExitCode> {
         "Server-render or prerender the main content; agents rarely execute JavaScript.",
     );
     add(
-        parsed.title.as_deref().is_some_and(|t| !t.trim().is_empty()),
+        parsed
+            .title
+            .as_deref()
+            .is_some_and(|t| !t.trim().is_empty()),
         10,
         "title",
         "Page has a non-empty <title>",
@@ -990,7 +1039,11 @@ pub fn agent_ux(url: &str, json: bool) -> CmdResult<ExitCode> {
         println!("URL: {}", rec.url);
         println!("Agent-readability score: {score}/100");
         for f in result["findings"].as_array().unwrap() {
-            let mark = if f["pass"].as_bool().unwrap_or(false) { "PASS" } else { "FAIL" };
+            let mark = if f["pass"].as_bool().unwrap_or(false) {
+                "PASS"
+            } else {
+                "FAIL"
+            };
             println!(
                 "  [{mark}] {:<24} {}",
                 f["check"].as_str().unwrap_or(""),
@@ -1102,7 +1155,8 @@ fn hreflang_issues(
                     }));
                 }
                 let exact = href.trim_end_matches('/') == page_url.trim_end_matches('/')
-                    || canonical.is_some_and(|c| href.trim_end_matches('/') == c.trim_end_matches('/'));
+                    || canonical
+                        .is_some_and(|c| href.trim_end_matches('/') == c.trim_end_matches('/'));
                 if exact {
                     has_self = true;
                 } else if self_keys.contains(&loose(href)) {
@@ -1179,7 +1233,11 @@ pub fn hreflang(url: Option<&str>, file: Option<&str>, json: bool) -> CmdResult<
         println!("URL: {label}");
         println!("hreflang entries: {}", parsed.hreflang.len());
         for e in &parsed.hreflang {
-            println!("  {:<10} {}", e.lang, e.href.as_deref().unwrap_or("(no href)"));
+            println!(
+                "  {:<10} {}",
+                e.lang,
+                e.href.as_deref().unwrap_or("(no href)")
+            );
         }
         println!("Errors: {errors}   Warnings: {warnings}");
         for i in &issues {
@@ -1268,7 +1326,9 @@ pub fn images_audit(url: Option<&str>, file: Option<&str>, json: bool) -> CmdRes
         recs.push("No AVIF/WebP images detected. Modern formats cut image bytes 25-50%.".into());
     }
     if total > 0 && lazy == 0 {
-        recs.push("No lazy loading detected. Add loading=\"lazy\" to below-the-fold images.".into());
+        recs.push(
+            "No lazy loading detected. Add loading=\"lazy\" to below-the-fold images.".into(),
+        );
     }
 
     let mut score = 100i64;
@@ -1342,7 +1402,13 @@ pub fn iptc(action: IptcAction) -> CmdResult<ExitCode> {
             creator,
             description,
             json,
-        } => iptc_inject(&path, &source_type, creator.as_deref(), description.as_deref(), json),
+        } => iptc_inject(
+            &path,
+            &source_type,
+            creator.as_deref(),
+            description.as_deref(),
+            json,
+        ),
     }
 }
 
@@ -1365,8 +1431,10 @@ fn iptc_audit(path: &str, json: bool) -> CmdResult<ExitCode> {
                 .and_then(|e| e.to_str())
                 .unwrap_or("")
                 .to_ascii_lowercase();
-            if matches!(ext.as_str(), "jpg" | "jpeg" | "png" | "webp" | "avif" | "gif" | "tif" | "tiff")
-            {
+            if matches!(
+                ext.as_str(),
+                "jpg" | "jpeg" | "png" | "webp" | "avif" | "gif" | "tif" | "tiff"
+            ) {
                 files.push(ep);
             }
         }
@@ -1417,11 +1485,19 @@ fn iptc_audit(path: &str, json: bool) -> CmdResult<ExitCode> {
         print_json(&result)?;
     } else {
         println!("Path: {path}");
-        println!("Images: {}  labelled: {labelled}  unlabelled: {}", files.len(), files.len() - labelled);
+        println!(
+            "Images: {}  labelled: {labelled}  unlabelled: {}",
+            files.len(),
+            files.len() - labelled
+        );
         for r in result["results"].as_array().unwrap() {
             println!(
                 "  [{}] {}",
-                if r["has_digital_source_type"].as_bool().unwrap_or(false) { "OK " } else { "GAP" },
+                if r["has_digital_source_type"].as_bool().unwrap_or(false) {
+                    "OK "
+                } else {
+                    "GAP"
+                },
                 r["path"].as_str().unwrap_or("")
             );
         }
@@ -1493,7 +1569,11 @@ fn iptc_inject(
     } else {
         println!("Wrote {}", sidecar.display());
         println!("DigitalSourceType: {source_type}");
-        println!("To embed into the image itself: exiftool -tagsfromfile {} {}", sidecar.display(), path);
+        println!(
+            "To embed into the image itself: exiftool -tagsfromfile {} {}",
+            sidecar.display(),
+            path
+        );
     }
     OK
 }
@@ -1512,14 +1592,27 @@ mod tests {
     #[test]
     fn hreflang_flags_uk_and_missing_self() {
         let entries = vec![
-            html::Hreflang { lang: "en-UK".into(), href: Some("https://a.test/en".into()) },
-            html::Hreflang { lang: "fr_FR".into(), href: Some("https://a.test/fr".into()) },
+            html::Hreflang {
+                lang: "en-UK".into(),
+                href: Some("https://a.test/en".into()),
+            },
+            html::Hreflang {
+                lang: "fr_FR".into(),
+                href: Some("https://a.test/fr".into()),
+            },
         ];
         let issues = hreflang_issues(&entries, "https://a.test/", None);
-        let msgs: Vec<&str> = issues.iter().filter_map(|i| i["message"].as_str()).collect();
-        assert!(msgs.iter().any(|m| m.contains("'UK' is not an ISO 3166-1 code")));
+        let msgs: Vec<&str> = issues
+            .iter()
+            .filter_map(|i| i["message"].as_str())
+            .collect();
+        assert!(msgs
+            .iter()
+            .any(|m| m.contains("'UK' is not an ISO 3166-1 code")));
         assert!(msgs.iter().any(|m| m.contains("BCP 47 requires '-'")));
-        assert!(msgs.iter().any(|m| m.contains("no self-referencing hreflang")));
+        assert!(msgs
+            .iter()
+            .any(|m| m.contains("no self-referencing hreflang")));
     }
 
     #[test]
@@ -1530,8 +1623,17 @@ mod tests {
 
     #[test]
     fn whois_date_forms() {
-        assert_eq!(parse_whois_date("2011-05-04T00:00:00Z").as_deref(), Some("2011-05-04"));
-        assert_eq!(parse_whois_date("04-May-2011").as_deref(), Some("2011-05-04"));
-        assert_eq!(parse_whois_date("04.05.2011").as_deref(), Some("2011-05-04"));
+        assert_eq!(
+            parse_whois_date("2011-05-04T00:00:00Z").as_deref(),
+            Some("2011-05-04")
+        );
+        assert_eq!(
+            parse_whois_date("04-May-2011").as_deref(),
+            Some("2011-05-04")
+        );
+        assert_eq!(
+            parse_whois_date("04.05.2011").as_deref(),
+            Some("2011-05-04")
+        );
     }
 }

@@ -17,8 +17,12 @@
     Install directory. Defaults to %LOCALAPPDATA%\Programs\seogeo.
 
 .PARAMETER Target
-    Agent target for the skills: all, claude, codex, gemini, opencode, agents.
-    Use "none" to install only the binary.
+    How to install the skills:
+      auto (default)  npx skills if Node is present, otherwise the built-in installer
+      npx             npx skills — one copy, symlinked into 75+ agents
+      all             write the five known agent paths directly
+      claude | codex | gemini | opencode | agents   a single tool
+      none            skip skills entirely
 
 .PARAMETER NoSkills
     Install only the binary.
@@ -33,7 +37,7 @@
 param(
     [string]$Version = $env:SEOGEO_VERSION,
     [string]$BinDir  = $env:SEOGEO_BIN_DIR,
-    [string]$Target  = $(if ($env:SEOGEO_TARGET) { $env:SEOGEO_TARGET } else { 'all' }),
+    [string]$Target  = $(if ($env:SEOGEO_TARGET) { $env:SEOGEO_TARGET } else { 'auto' }),
     [switch]$NoSkills
 )
 
@@ -197,9 +201,29 @@ This usually means an architecture mismatch — detected $targetTriple.
     if (-not $NoSkills -and $Target -ne 'none') {
         Write-Host ''
         Write-Step 'Installing skills'
-        & $dest install --target $Target
+
+        # npx skills keeps one copy and symlinks it into 75+ agents, against
+        # the five this binary writes itself. Prefer it when Node is present,
+        # but never require it.
+        $resolved = $Target
+        if ($resolved -eq 'auto') {
+            if (Get-Command npx -ErrorAction SilentlyContinue) {
+                $resolved = 'npx'
+            } else {
+                $resolved = 'all'
+                Write-Info 'Node not found; using the built-in installer (5 agent tools)'
+            }
+        }
+
+        & $dest install --target $resolved
         if ($LASTEXITCODE -ne 0) {
-            Write-Warn "Skill installation failed; run '$BinName install --target all' by hand."
+            if ($resolved -eq 'npx') {
+                Write-Warn 'npx skills failed; falling back to the built-in installer'
+                & $dest install --target all
+            }
+            if ($LASTEXITCODE -ne 0) {
+                Write-Warn "Skill installation failed; run '$BinName install --target all' by hand."
+            }
         }
     }
 

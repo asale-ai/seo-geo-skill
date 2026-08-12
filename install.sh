@@ -8,7 +8,12 @@
 # Options (environment variables):
 #   SEOGEO_VERSION   tag to install, e.g. v0.1.0 (default: latest release)
 #   SEOGEO_BIN_DIR   install directory       (default: ~/.local/bin)
-#   SEOGEO_TARGET    agent target for skills (default: all; "none" to skip)
+#   SEOGEO_TARGET    how to install the skills:
+#                      auto (default) npx skills if Node is present, else all
+#                      npx            npx skills — one copy, 75+ agents
+#                      all            write the five known paths directly
+#                      claude|codex|gemini|opencode|agents  one tool
+#                      none           skip skills entirely
 #   SEOGEO_NO_SKILLS set to 1 to install only the binary
 #
 # POSIX sh on purpose: this runs on Alpine, on minimal CI images, and on
@@ -19,7 +24,7 @@ set -eu
 REPO="asale-ai/seo-geo-skill"
 BIN_NAME="seogeo"
 BIN_DIR="${SEOGEO_BIN_DIR:-$HOME/.local/bin}"
-TARGET_TOOL="${SEOGEO_TARGET:-all}"
+TARGET_TOOL="${SEOGEO_TARGET:-auto}"
 
 RED=''; GREEN=''; YELLOW=''; BOLD=''; RESET=''
 if [ -t 1 ] && [ "${NO_COLOR:-}" = "" ]; then
@@ -183,8 +188,30 @@ This usually means an architecture mismatch — detected $TARGET."
   if [ "${SEOGEO_NO_SKILLS:-}" != "1" ] && [ "$TARGET_TOOL" != "none" ]; then
     info ""
     step "Installing skills"
-    "$BIN_DIR/$BIN_NAME" install --target "$TARGET_TOOL" || \
-      warn "skill installation failed; run '$BIN_NAME install --target all' by hand"
+
+    # `npx skills` keeps one copy in ~/.agents/skills and symlinks it into
+    # every agent it knows about — 75+ of them, against the five this binary
+    # writes itself. Prefer it when Node is available, but never require it:
+    # the built-in installer needs no network and no Node.
+    resolved="$TARGET_TOOL"
+    if [ "$resolved" = "auto" ]; then
+      if have npx; then
+        resolved="npx"
+      else
+        resolved="all"
+        info "Node not found; using the built-in installer (5 agent tools)"
+      fi
+    fi
+
+    if ! "$BIN_DIR/$BIN_NAME" install --target "$resolved"; then
+      if [ "$resolved" = "npx" ]; then
+        warn "npx skills failed; falling back to the built-in installer"
+        "$BIN_DIR/$BIN_NAME" install --target all || \
+          warn "skill installation failed; run '$BIN_NAME install --target all' by hand"
+      else
+        warn "skill installation failed; run '$BIN_NAME install --target all' by hand"
+      fi
+    fi
   fi
 
   info ""

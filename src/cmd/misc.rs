@@ -210,12 +210,20 @@ pub fn indexnow(
         print_json(&result)?;
     } else {
         println!("Submitted {} URL(s) for {hostname}", targets.len());
-        println!("  HTTP {} — {}", resp.status, result["meaning"].as_str().unwrap_or(""));
+        println!(
+            "  HTTP {} — {}",
+            resp.status,
+            result["meaning"].as_str().unwrap_or("")
+        );
         if !rejected.is_empty() {
             println!("  {} URL(s) skipped (wrong host)", rejected.len());
         }
     }
-    Ok(if accepted { ExitCode::SUCCESS } else { ExitCode::from(1) })
+    Ok(if accepted {
+        ExitCode::SUCCESS
+    } else {
+        ExitCode::from(1)
+    })
 }
 
 // ------------------------------------------------------------- seo updates
@@ -260,7 +268,10 @@ pub fn seo_updates(since: Option<&str>, json: bool) -> CmdResult<ExitCode> {
                 println!("      {}", truncate(n, 110));
             }
         }
-        println!("\nPrimary source: {}", data["source_of_truth"].as_str().unwrap_or(""));
+        println!(
+            "\nPrimary source: {}",
+            data["source_of_truth"].as_str().unwrap_or("")
+        );
     }
     OK
 }
@@ -285,8 +296,7 @@ pub fn sync_flow(dry_run: bool, git_ref: &str, json: bool) -> CmdResult<ExitCode
         .join(".claude/skills/seo-flow/references/flow-prompts");
 
     let repo = flow_repo();
-    let listing_url =
-        format!("https://api.github.com/repos/{repo}/contents/prompts?ref={git_ref}");
+    let listing_url = format!("https://api.github.com/repos/{repo}/contents/prompts?ref={git_ref}");
     validate_url_strict(&listing_url)?;
     let opts = RequestOptions::with_timeout(30)
         .header("Accept", "application/vnd.github+json")
@@ -334,7 +344,8 @@ pub fn sync_flow(dry_run: bool, git_ref: &str, json: bool) -> CmdResult<ExitCode
         );
         let path = dest.join(name);
         std::fs::write(&path, content)?;
-        written.push(json!({"name": name, "path": path.display().to_string(), "action": "written"}));
+        written
+            .push(json!({"name": name, "path": path.display().to_string(), "action": "written"}));
     }
 
     let result = json!({
@@ -441,7 +452,11 @@ pub fn screenshot(
     let (w, h) = viewport
         .split_once(['x', 'X'])
         .and_then(|(a, b)| Some((a.trim().parse().ok()?, b.trim().parse().ok()?)))
-        .ok_or_else(|| Error(format!("invalid --viewport {viewport:?}; expected WIDTHxHEIGHT")))?;
+        .ok_or_else(|| {
+            Error(format!(
+                "invalid --viewport {viewport:?}; expected WIDTHxHEIGHT"
+            ))
+        })?;
 
     let path = std::path::Path::new(output);
     chrome::screenshot(&norm, path, w, h, full_page, 15000)?;
@@ -481,12 +496,14 @@ pub fn report_pdf(
         .map(String::from)
         .or_else(|| first_heading(&markdown))
         .unwrap_or_else(|| "GEO Audit".into());
-    let score = score
-        .map(String::from)
-        .or_else(|| extract_score(&markdown));
+    let score = score.map(String::from).or_else(|| extract_score(&markdown));
 
     let stem = output
-        .map(|o| o.trim_end_matches(".pdf").trim_end_matches(".html").to_string())
+        .map(|o| {
+            o.trim_end_matches(".pdf")
+                .trim_end_matches(".html")
+                .to_string()
+        })
         .unwrap_or_else(|| {
             std::path::Path::new(input)
                 .file_stem()
@@ -527,7 +544,12 @@ fn render_markdown_report(markdown: &str, brand: &str, score: Option<&str>) -> S
     use crate::cmd::drift::esc;
     let body = markdown_to_html(markdown);
     let score_badge = score
-        .map(|s| format!("<div class=\"score\"><span>{}</span><small>/100</small></div>", esc(s)))
+        .map(|s| {
+            format!(
+                "<div class=\"score\"><span>{}</span><small>/100</small></div>",
+                esc(s)
+            )
+        })
         .unwrap_or_default();
 
     format!(
@@ -686,10 +708,7 @@ pub fn markdown_to_html(md: &str) -> String {
             close_list(&mut list, &mut out);
             let text = trimmed[level + 1..].trim();
             let class = severity_class(text);
-            out.push_str(&format!(
-                "<h{level}{class}>{}</h{level}>",
-                inline_md(text)
-            ));
+            out.push_str(&format!("<h{level}{class}>{}</h{level}>", inline_md(text)));
             i += 1;
             continue;
         }
@@ -701,7 +720,10 @@ pub fn markdown_to_html(md: &str) -> String {
             continue;
         }
 
-        if let Some(item) = trimmed.strip_prefix("- ").or_else(|| trimmed.strip_prefix("* ")) {
+        if let Some(item) = trimmed
+            .strip_prefix("- ")
+            .or_else(|| trimmed.strip_prefix("* "))
+        {
             flush_para(&mut para, &mut out);
             if list != Some("ul") {
                 close_list(&mut list, &mut out);
@@ -747,9 +769,10 @@ pub fn markdown_to_html(md: &str) -> String {
 
 fn heading_level(line: &str) -> Option<usize> {
     let hashes = line.chars().take_while(|c| *c == '#').count();
-    (1..=6).contains(&hashes).then_some(hashes).filter(|_| {
-        line.chars().nth(hashes) == Some(' ')
-    })
+    (1..=6)
+        .contains(&hashes)
+        .then_some(hashes)
+        .filter(|_| line.chars().nth(hashes) == Some(' '))
 }
 
 fn ordered_item(line: &str) -> Option<&str> {
@@ -845,7 +868,11 @@ pub fn commands(json: bool) -> CmdResult<ExitCode> {
                 r["command"].as_str().unwrap_or(""),
                 r["skills"]
                     .as_array()
-                    .map(|a| a.iter().filter_map(|s| s.as_str()).collect::<Vec<_>>().join(", "))
+                    .map(|a| a
+                        .iter()
+                        .filter_map(|s| s.as_str())
+                        .collect::<Vec<_>>()
+                        .join(", "))
                     .unwrap_or_default()
             );
         }
@@ -859,7 +886,8 @@ mod tests {
 
     #[test]
     fn markdown_renders_tables_and_lists() {
-        let md = "# Title\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n- one\n- two\n\n`code` and **bold**";
+        let md =
+            "# Title\n\n| A | B |\n|---|---|\n| 1 | 2 |\n\n- one\n- two\n\n`code` and **bold**";
         let html = markdown_to_html(md);
         assert!(html.contains("<h1>Title</h1>"));
         assert!(html.contains("<th>A</th>"));
@@ -882,7 +910,11 @@ mod tests {
         assert!(data["updates"].as_array().unwrap().len() > 10);
         // Every entry must cite a Google-owned source.
         const GOOGLE_HOSTS: &[&str] = &[
-            "google.com", "blog.google", "web.dev", "chrome.com", "developers.google.com",
+            "google.com",
+            "blog.google",
+            "web.dev",
+            "chrome.com",
+            "developers.google.com",
         ];
         for u in data["updates"].as_array().unwrap() {
             let src = u["source"].as_str().unwrap_or("");
@@ -895,7 +927,10 @@ mod tests {
 
     #[test]
     fn score_extracted_from_report() {
-        assert_eq!(extract_score("Overall GEO score: 74/100").as_deref(), Some("74"));
+        assert_eq!(
+            extract_score("Overall GEO score: 74/100").as_deref(),
+            Some("74")
+        );
         assert_eq!(extract_score("no score here"), None);
     }
 }

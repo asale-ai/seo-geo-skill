@@ -67,8 +67,7 @@ pub fn read_source(source: &str) -> CmdResult<String> {
         std::io::Read::read_to_string(&mut std::io::stdin(), &mut buf)?;
         Ok(buf)
     } else {
-        std::fs::read_to_string(source)
-            .map_err(|e| Error(format!("could not read {source}: {e}")))
+        std::fs::read_to_string(source).map_err(|e| Error(format!("could not read {source}: {e}")))
     }
 }
 

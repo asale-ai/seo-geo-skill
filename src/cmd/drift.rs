@@ -128,7 +128,11 @@ fn init_db() -> CmdResult<Connection> {
 
 pub fn run(action: DriftAction) -> CmdResult<ExitCode> {
     match action {
-        DriftAction::Baseline { url, skip_cwv, json } => baseline(&url, skip_cwv, json),
+        DriftAction::Baseline {
+            url,
+            skip_cwv,
+            json,
+        } => baseline(&url, skip_cwv, json),
         DriftAction::Compare {
             url,
             skip_cwv,
@@ -163,12 +167,14 @@ fn capture_state(url: &str) -> CmdResult<PageState> {
 /// configured the baseline is still captured, just without CWV.
 fn capture_cwv(url: &str) -> Option<Value> {
     let key = crate::cmd::google::api_key()?;
-    crate::cmd::google::crux_record(url, "PHONE", &key).ok().map(|record| {
-        json!({
-            "performance_score": Value::Null,
-            "field_metrics": record,
+    crate::cmd::google::crux_record(url, "PHONE", &key)
+        .ok()
+        .map(|record| {
+            json!({
+                "performance_score": Value::Null,
+                "field_metrics": record,
+            })
         })
-    })
 }
 
 // ---------------------------------------------------------------- baseline
@@ -248,7 +254,10 @@ pub fn baseline(url: &str, skip_cwv: bool, json: bool) -> CmdResult<ExitCode> {
         println!("  title:  {}", p.title.as_deref().unwrap_or("(none)"));
         println!("  h1:     {}", h1.as_deref().unwrap_or("(none)"));
         println!("  schema: {} block(s)", p.schema.len());
-        println!("  cwv:    {}", if cwv.is_some() { "captured" } else { "skipped" });
+        println!(
+            "  cwv:    {}",
+            if cwv.is_some() { "captured" } else { "skipped" }
+        );
     }
     OK
 }
@@ -309,7 +318,11 @@ fn schema_types(blocks: &[Value]) -> Vec<String> {
     for b in blocks {
         let values = match &b["@type"] {
             Value::String(s) => vec![s.clone()],
-            Value::Array(a) => a.iter().filter_map(|v| v.as_str()).map(String::from).collect(),
+            Value::Array(a) => a
+                .iter()
+                .filter_map(|v| v.as_str())
+                .map(String::from)
+                .collect(),
             _ => vec![],
         };
         for v in values {
@@ -323,7 +336,14 @@ fn schema_types(blocks: &[Value]) -> Vec<String> {
     types
 }
 
-fn finding(rule: &str, severity: &str, triggered: bool, old: Value, new: Value, message: String) -> Value {
+fn finding(
+    rule: &str,
+    severity: &str,
+    triggered: bool,
+    old: Value,
+    new: Value,
+    message: String,
+) -> Value {
     json!({
         "rule": rule,
         "severity": severity,
@@ -363,9 +383,15 @@ fn load_baseline(conn: &Connection, uhash: &str, id: Option<i64>) -> CmdResult<O
     };
     let mut stmt = conn.prepare(sql)?;
     let map_row = |row: &rusqlite::Row| -> rusqlite::Result<Baseline> {
-        let h2: String = row.get::<_, Option<String>>(7)?.unwrap_or_else(|| "[]".into());
-        let schema: String = row.get::<_, Option<String>>(8)?.unwrap_or_else(|| "[]".into());
-        let og: String = row.get::<_, Option<String>>(9)?.unwrap_or_else(|| "{}".into());
+        let h2: String = row
+            .get::<_, Option<String>>(7)?
+            .unwrap_or_else(|| "[]".into());
+        let schema: String = row
+            .get::<_, Option<String>>(8)?
+            .unwrap_or_else(|| "[]".into());
+        let og: String = row
+            .get::<_, Option<String>>(9)?
+            .unwrap_or_else(|| "{}".into());
         let cwv: Option<String> = row.get(10)?;
         Ok(Baseline {
             id: row.get(0)?,
@@ -405,7 +431,9 @@ pub fn compare(
     let conn = init_db()?;
 
     let Some(base) = load_baseline(&conn, &uhash, baseline_id)? else {
-        let extra = baseline_id.map(|b| format!(" (baseline_id={b})")).unwrap_or_default();
+        let extra = baseline_id
+            .map(|b| format!(" (baseline_id={b})"))
+            .unwrap_or_default();
         return err(format!(
             "No baseline found for {norm}{extra}. Run `seogeo drift baseline {norm}` first."
         ));
@@ -420,11 +448,17 @@ pub fn compare(
     // --- CRITICAL (rules 1-8) ---
     let old_types = schema_types(&base.schema);
     let retired_only = !old_types.is_empty()
-        && old_types.iter().all(|t| RETIRED_SCHEMA_TYPES.contains(&t.as_str()));
+        && old_types
+            .iter()
+            .all(|t| RETIRED_SCHEMA_TYPES.contains(&t.as_str()));
     let schema_removed = !base.schema.is_empty() && cur.schema.is_empty();
     findings.push(finding(
         "schema_removed",
-        if schema_removed && retired_only { "WARNING" } else { "CRITICAL" },
+        if schema_removed && retired_only {
+            "WARNING"
+        } else {
+            "CRITICAL"
+        },
         schema_removed,
         json!(format!("{} schema block(s)", base.schema.len())),
         json!("0 schema blocks"),
@@ -435,9 +469,8 @@ pub fn compare(
         },
     ));
 
-    let canonical_changed = base.canonical.is_some()
-        && cur.canonical.is_some()
-        && base.canonical != cur.canonical;
+    let canonical_changed =
+        base.canonical.is_some() && cur.canonical.is_some() && base.canonical != cur.canonical;
     findings.push(finding(
         "canonical_changed",
         "CRITICAL",
@@ -455,8 +488,8 @@ pub fn compare(
         },
     ));
 
-    let canonical_removed = base.canonical.is_some()
-        && cur.canonical.as_deref().unwrap_or("").is_empty();
+    let canonical_removed =
+        base.canonical.is_some() && cur.canonical.as_deref().unwrap_or("").is_empty();
     findings.push(finding(
         "canonical_removed",
         "CRITICAL",
@@ -514,7 +547,13 @@ pub fn compare(
                 format!("H1 changed significantly (similarity: {:.0}%). Verify keyword targeting is preserved.", ratio * 100.0),
             )
         } else {
-            (false, format!("H1 text is similar enough (similarity: {:.0}%).", ratio * 100.0))
+            (
+                false,
+                format!(
+                    "H1 text is similar enough (similarity: {:.0}%).",
+                    ratio * 100.0
+                ),
+            )
         }
     };
     findings.push(finding(
@@ -543,8 +582,8 @@ pub fn compare(
 
     let old_status = base.status_code;
     let new_status = state.status_code.map(|s| s as i64);
-    let status_error = old_status.is_some_and(|s| (200..400).contains(&s))
-        && new_status.is_some_and(|s| s >= 400);
+    let status_error =
+        old_status.is_some_and(|s| (200..400).contains(&s)) && new_status.is_some_and(|s| s >= 400);
     findings.push(finding(
         "status_code_error",
         "CRITICAL",
@@ -579,8 +618,18 @@ pub fn compare(
         },
     ));
 
-    let old_desc = base.meta_description.clone().unwrap_or_default().trim().to_string();
-    let new_desc = cur.meta_description.clone().unwrap_or_default().trim().to_string();
+    let old_desc = base
+        .meta_description
+        .clone()
+        .unwrap_or_default()
+        .trim()
+        .to_string();
+    let new_desc = cur
+        .meta_description
+        .clone()
+        .unwrap_or_default()
+        .trim()
+        .to_string();
     let desc_changed = !old_desc.is_empty() && !new_desc.is_empty() && old_desc != new_desc;
     findings.push(finding(
         "meta_description_changed",
@@ -595,7 +644,10 @@ pub fn compare(
         },
     ));
 
-    findings.push(cwv_regression_finding(base.cwv.as_ref(), current_cwv.as_ref()));
+    findings.push(cwv_regression_finding(
+        base.cwv.as_ref(),
+        current_cwv.as_ref(),
+    ));
     findings.push(perf_score_finding(base.cwv.as_ref(), current_cwv.as_ref()));
 
     let og_removed = !base.og.is_empty() && cur.open_graph.is_empty();
@@ -626,8 +678,13 @@ pub fn compare(
         "schema_modified",
         "WARNING",
         schema_modified,
-        json!(base.schema_hash.as_deref().map(|h| format!("{}...", &h[..12]))),
-        json!(new_schema_hash.as_deref().map(|h| format!("{}...", &h[..12]))),
+        json!(base
+            .schema_hash
+            .as_deref()
+            .map(|h| format!("{}...", &h[..12]))),
+        json!(new_schema_hash
+            .as_deref()
+            .map(|h| format!("{}...", &h[..12]))),
         if schema_modified {
             "Schema/JSON-LD content has been modified. Re-validate with `seogeo schema-validate`."
                 .into()
@@ -677,7 +734,10 @@ pub fn compare(
         "content_hash_changed",
         "INFO",
         content_changed,
-        json!(base.html_hash.as_deref().map(|h| format!("{}...", &h[..12]))),
+        json!(base
+            .html_hash
+            .as_deref()
+            .map(|h| format!("{}...", &h[..12]))),
         json!(format!("{}...", &state.html_hash[..12])),
         if content_changed {
             "Page content has changed (HTML body hash differs from baseline).".into()
@@ -1151,6 +1211,9 @@ mod tests {
             json!({"@type": "Product"}),
             json!({"@type": ["Article", "https://schema.org/NewsArticle"]}),
         ];
-        assert_eq!(schema_types(&blocks), vec!["Article", "NewsArticle", "Product"]);
+        assert_eq!(
+            schema_types(&blocks),
+            vec!["Article", "NewsArticle", "Product"]
+        );
     }
 }

@@ -12,15 +12,6 @@ Python, no virtualenv, no `pip install`.
 
 ## Install
 
-```bash
-clawhub install @asale-ai/seo-geo-skill
-```
-
-That installs the skills and the `seogeo` binary they call.
-
-<details>
-<summary>Without ClawHub</summary>
-
 macOS and Linux:
 
 ```bash
@@ -33,13 +24,16 @@ Windows PowerShell:
 irm https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.ps1 | iex
 ```
 
-Both scripts detect your platform, verify the release checksum, install
-`seogeo` to `~/.local/bin` (`%LOCALAPPDATA%\Programs\seogeo` on Windows), and
-then run `seogeo install --target all` to write the skills into every agent
-tool they find — Claude Code, Codex CLI, Gemini CLI, OpenCode, and anything
-that reads `~/.agents/skills`.
+That installs the `seogeo` binary — checksum-verified against the published
+`SHA256SUMS` — and then hands the skills to
+[`npx skills`](https://github.com/vercel-labs/skills), which supports **75+
+agents**: Claude Code, Codex, Cursor, OpenCode, Cline, Copilot, Roo, Windsurf,
+and the rest. One canonical copy lands in `~/.agents/skills` and is symlinked
+into each agent that is present. The install is pinned to the same tag as the
+binary, so the skills can never be newer or older than the code that runs them.
 
-</details>
+No Node? The installer falls back to writing five known agent directories
+directly. Nothing here requires npm.
 
 Confirm it worked:
 
@@ -47,6 +41,40 @@ Confirm it worked:
 seogeo --version
 seogeo install --list
 ```
+
+<details>
+<summary>Other ways in</summary>
+
+**Skills only, no binary yet** — the bundled `seo-geo-skill` skill will then
+walk your agent through installing the binary:
+
+```bash
+npx skills add asale-ai/seo-geo-skill --all
+```
+
+**ClawHub:**
+
+```bash
+clawhub install @asale-ai/seo-geo-skill
+```
+
+**From source:**
+
+```bash
+cargo install --git https://github.com/asale-ai/seo-geo-skill
+seogeo install --target npx      # or --target all
+```
+
+**Pick your own targets:**
+
+```bash
+seogeo install --target npx        # 75+ agents via npx skills
+seogeo install --target all        # the five paths seogeo writes itself
+seogeo install --target claude     # just one
+seogeo install --list              # what is detected here
+```
+
+</details>
 
 ---
 
@@ -141,6 +169,7 @@ export SEOGEO_PROXY=http://127.0.0.1:7890
 ## Uninstall
 
 ```bash
+npx skills remove          # if the skills came from npx skills
 rm -rf ~/.claude/skills/{seo,geo}* ~/.claude/agents/{seo,geo}*-*.md
 rm -f ~/.local/bin/seogeo
 ```

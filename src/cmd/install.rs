@@ -17,6 +17,9 @@ use crate::output::{err, print_json, CmdResult, Error};
 
 const OK: CmdResult<ExitCode> = Ok(ExitCode::SUCCESS);
 
+/// Source repository, used when delegating to `npx skills`.
+const SOURCE_REPO: &str = "https://github.com/asale-ai/seo-geo-skill.git";
+
 static SKILLS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/skills");
 static AGENTS: Dir<'_> = include_dir!("$CARGO_MANIFEST_DIR/agents");
 
@@ -86,6 +89,8 @@ fn spec(id: &str) -> Option<&'static TargetSpec> {
 
 fn selected(target: InstallTarget) -> Vec<&'static TargetSpec> {
     match target {
+        // Handled before this point; never reaches the directory writer.
+        InstallTarget::Npx => Vec::new(),
         InstallTarget::Claude => spec("claude").into_iter().collect(),
         InstallTarget::Codex => spec("codex").into_iter().collect(),
         InstallTarget::Gemini => spec("gemini").into_iter().collect(),
@@ -105,11 +110,109 @@ fn detected(t: &TargetSpec) -> bool {
 pub fn skill_names() -> Vec<String> {
     let mut names: Vec<String> = SKILLS
         .dirs()
-        .filter(|d| d.get_file(format!("{}/SKILL.md", d.path().display())).is_some())
-        .filter_map(|d| d.path().file_name().map(|n| n.to_string_lossy().into_owned()))
+        .filter(|d| {
+            d.get_file(format!("{}/SKILL.md", d.path().display()))
+                .is_some()
+        })
+        .filter_map(|d| {
+            d.path()
+                .file_name()
+                .map(|n| n.to_string_lossy().into_owned())
+        })
         .collect();
     names.sort();
     names
+}
+
+/// Delegate skill distribution to `npx skills`.
+///
+/// It maintains one canonical copy in `~/.agents/skills` and symlinks it into
+/// each agent's directory, covering far more tools than this binary knows
+/// about. The source is pinned to this binary's own tag so the skills can
+/// never be newer or older than the code that runs them.
+fn install_via_npx(only: &[String], dry_run: bool, json: bool) -> CmdResult<ExitCode> {
+    let npx = which("npx").ok_or_else(|| {
+        Error(
+            "`npx skills` needs Node 18+ on PATH. Install Node, or use \
+             `seogeo install --target all` to write the skills directly (no Node required)."
+                .into(),
+        )
+    })?;
+
+    let source = format!("{SOURCE_REPO}#v{}", env!("CARGO_PKG_VERSION"));
+    let mut args: Vec<String> = vec![
+        "--yes".into(),
+        "skills".into(),
+        "add".into(),
+        source.clone(),
+    ];
+    if only.is_empty() {
+        // --all is shorthand for --skill '*' --agent '*' -y, which is the only
+        // fully non-interactive form.
+        args.push("--all".into());
+    } else {
+        for name in only {
+            args.push("--skill".into());
+            args.push(name.clone());
+        }
+        args.push("--agent".into());
+        args.push("*".into());
+        args.push("--yes".into());
+    }
+    args.push("--global".into());
+
+    let printable = format!("npx {}", args.join(" "));
+    if dry_run {
+        let out = json!({
+            "delegate": "npx skills",
+            "command": printable,
+            "source": source,
+            "dry_run": true,
+        });
+        if json {
+            print_json(&out)?;
+        } else {
+            println!("Would run: {printable}");
+        }
+        return OK;
+    }
+
+    let status = std::process::Command::new(&npx)
+        .args(&args)
+        .status()
+        .map_err(|e| Error(format!("could not run {}: {e}", npx.display())))?;
+    if !status.success() {
+        return err(format!(
+            "`{printable}` exited with {status}.\n\
+             Fall back to the built-in installer: seogeo install --target all"
+        ));
+    }
+
+    let out = json!({
+        "delegate": "npx skills",
+        "command": printable,
+        "source": source,
+        "canonical_store": home().map(|h| h.join(".agents/skills").display().to_string()).ok(),
+        "note": "npx skills keeps one copy in ~/.agents/skills and symlinks it into each \
+                 detected agent directory.",
+    });
+    if json {
+        print_json(&out)?;
+    } else {
+        println!(
+            "\nInstalled via npx skills (pinned to v{}).",
+            env!("CARGO_PKG_VERSION")
+        );
+        // npx skills prints one line per skill per agent, including agents
+        // that only support project-level installs. Those look like failures
+        // and are not, so say so rather than leaving the user to guess.
+        println!(
+            "Any \"does not support global skill installation\" lines above are agents that \
+             only\nsupport project-level installs — not failures. Check what landed with: \
+             npx skills list -g"
+        );
+    }
+    OK
 }
 
 pub fn run(
@@ -133,7 +236,19 @@ pub fn run(
                 })
             })
             .collect();
-        let out = json!({"skills": skill_names(), "targets": rows});
+        let npx_available = which("npx").is_some();
+        let out = json!({
+            "skills": skill_names(),
+            "targets": rows,
+            "npx": {
+                "target": "npx",
+                "label": "npx skills (75+ agents)",
+                "available": npx_available,
+                "canonical_store": home().map(|h| h.join(".agents/skills").display().to_string()).ok(),
+                "source": format!("{SOURCE_REPO}#v{}", env!("CARGO_PKG_VERSION")),
+                "docs": "https://github.com/vercel-labs/skills",
+            },
+        });
         if json {
             print_json(&out)?;
         } else {
@@ -141,13 +256,42 @@ pub fn run(
             for r in &rows {
                 println!(
                     "  [{}] {:<28} {}",
-                    if r["detected"].as_bool().unwrap_or(false) { "detected" } else { "  --    " },
+                    if r["detected"].as_bool().unwrap_or(false) {
+                        "detected"
+                    } else {
+                        "  --    "
+                    },
                     r["label"].as_str().unwrap_or(""),
                     r["install_path"].as_str().unwrap_or("")
                 );
             }
+            println!(
+                "\n  [{}] {:<28} {}",
+                if npx_available {
+                    "detected"
+                } else {
+                    "  --    "
+                },
+                "npx skills (75+ agents)",
+                out["npx"]["canonical_store"]
+                    .as_str()
+                    .unwrap_or("(needs Node)")
+            );
+            println!("\n  --target all  writes the five paths above directly (no Node needed)");
+            println!(
+                "  --target npx  delegates to npx skills: one copy, symlinked into 75+ agents"
+            );
         }
         return OK;
+    }
+
+    if matches!(target, InstallTarget::Npx) {
+        if dir.is_some() {
+            return err(
+                "--dir is not compatible with --target npx; npx skills chooses its own paths",
+            );
+        }
+        return install_via_npx(only, dry_run, json);
     }
 
     let all_names = skill_names();
@@ -174,7 +318,8 @@ pub fn run(
     // no-op dressed up as success. Claude Code's directory is the widest
     // fallback: Claude Code and OpenCode both read it.
     let mut fallback_used = false;
-    if matches!(target, InstallTarget::All) && dir.is_none() && !targets.iter().any(|t| detected(t)) {
+    if matches!(target, InstallTarget::All) && dir.is_none() && !targets.iter().any(|t| detected(t))
+    {
         targets = spec("claude").into_iter().collect();
         fallback_used = true;
     }
@@ -213,7 +358,9 @@ pub fn run(
             .unwrap_or_else(|| root.join("agents"));
         let mut agents_written = 0usize;
         for file in AGENTS.files() {
-            let Some(name) = file.path().file_name() else { continue };
+            let Some(name) = file.path().file_name() else {
+                continue;
+            };
             let dest = agents_root.join(name);
             if !dry_run {
                 std::fs::create_dir_all(&agents_root)?;
@@ -279,7 +426,11 @@ pub fn run(
             }
             println!(
                 "{} {} skill(s) -> {}",
-                if dry_run { "Would install" } else { "Installed" },
+                if dry_run {
+                    "Would install"
+                } else {
+                    "Installed"
+                },
                 i["skills"],
                 i["path"].as_str().unwrap_or("")
             );
@@ -333,10 +484,7 @@ fn write_dir(
 ) -> CmdResult<usize> {
     let mut count = 0;
     for file in dir.files() {
-        let rel = file
-            .path()
-            .strip_prefix(skill_name)
-            .unwrap_or(file.path());
+        let rel = file.path().strip_prefix(skill_name).unwrap_or(file.path());
         let dest = root.join(skill_name).join(rel);
         if !dry_run {
             if let Some(parent) = dest.parent() {
@@ -375,7 +523,11 @@ mod tests {
     #[test]
     fn skills_are_embedded() {
         let names = skill_names();
-        assert!(names.len() >= 40, "expected the full skill set, got {}", names.len());
+        assert!(
+            names.len() >= 40,
+            "expected the full skill set, got {}",
+            names.len()
+        );
         assert!(names.iter().any(|n| n.starts_with("geo-")));
         assert!(names.iter().any(|n| n.starts_with("seo-")));
     }
@@ -388,7 +540,10 @@ mod tests {
                 .get_file(format!("{name}/SKILL.md"))
                 .unwrap_or_else(|| panic!("{name} has no SKILL.md"));
             let text = std::str::from_utf8(file.contents()).unwrap();
-            assert!(text.starts_with("---\n"), "{name}: SKILL.md has no frontmatter");
+            assert!(
+                text.starts_with("---\n"),
+                "{name}: SKILL.md has no frontmatter"
+            );
             assert!(text.contains("\nname:"), "{name}: frontmatter has no name");
             assert!(
                 text.contains("\ndescription:"),

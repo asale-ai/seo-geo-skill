@@ -242,24 +242,56 @@ fn requirements(schema_type: &str) -> (&'static [&'static str], &'static [&'stat
     match schema_type {
         "Article" | "NewsArticle" | "BlogPosting" => (
             &["headline"],
-            &["author", "datePublished", "dateModified", "image", "publisher"],
+            &[
+                "author",
+                "datePublished",
+                "dateModified",
+                "image",
+                "publisher",
+            ],
         ),
         "Product" => (
             &["name"],
-            &["image", "description", "offers", "brand", "aggregateRating", "review"],
+            &[
+                "image",
+                "description",
+                "offers",
+                "brand",
+                "aggregateRating",
+                "review",
+            ],
         ),
         "Organization" => (&["name"], &["url", "logo", "sameAs", "contactPoint"]),
         "LocalBusiness" => (
             &["name", "address"],
-            &["telephone", "openingHours", "geo", "priceRange", "url", "image"],
+            &[
+                "telephone",
+                "openingHours",
+                "geo",
+                "priceRange",
+                "url",
+                "image",
+            ],
         ),
-        "Person" => (&["name"], &["url", "sameAs", "jobTitle", "knowsAbout", "image"]),
+        "Person" => (
+            &["name"],
+            &["url", "sameAs", "jobTitle", "knowsAbout", "image"],
+        ),
         "FAQPage" => (&["mainEntity"], &[]),
         "BreadcrumbList" => (&["itemListElement"], &[]),
-        "Event" => (&["name", "startDate", "location"], &["endDate", "offers", "performer", "image"]),
+        "Event" => (
+            &["name", "startDate", "location"],
+            &["endDate", "offers", "performer", "image"],
+        ),
         "Recipe" => (
             &["name"],
-            &["image", "recipeIngredient", "recipeInstructions", "author", "nutrition"],
+            &[
+                "image",
+                "recipeIngredient",
+                "recipeInstructions",
+                "author",
+                "nutrition",
+            ],
         ),
         "VideoObject" => (
             &["name", "thumbnailUrl", "uploadDate"],
@@ -267,7 +299,12 @@ fn requirements(schema_type: &str) -> (&'static [&'static str], &'static [&'stat
         ),
         "SoftwareApplication" => (
             &["name"],
-            &["applicationCategory", "operatingSystem", "offers", "aggregateRating"],
+            &[
+                "applicationCategory",
+                "operatingSystem",
+                "offers",
+                "aggregateRating",
+            ],
         ),
         "WebSite" => (&["name", "url"], &["potentialAction"]),
         "DiscussionForumPosting" => (
@@ -434,7 +471,10 @@ fn offer_issues(offer: &Value, path: &str, issues: &mut Vec<Value>) {
         || offer.get("lowPrice").is_some()
         || offer.get("priceSpecification").is_some();
     if !has_price {
-        push("error", "offer has no price / lowPrice / priceSpecification".into());
+        push(
+            "error",
+            "offer has no price / lowPrice / priceSpecification".into(),
+        );
     }
     if offer.get("priceCurrency").is_none()
         && offer
@@ -457,10 +497,16 @@ fn offer_issues(offer: &Value, path: &str, issues: &mut Vec<Value>) {
         }
     }
     if offer.get("priceValidUntil").is_none() {
-        push("warning", "offer has no priceValidUntil — listings can go stale".into());
+        push(
+            "warning",
+            "offer has no priceValidUntil — listings can go stale".into(),
+        );
     }
     if offer.get("shippingDetails").is_none() {
-        push("warning", "offer has no shippingDetails — required for some merchant programs".into());
+        push(
+            "warning",
+            "offer has no shippingDetails — required for some merchant programs".into(),
+        );
     }
     if offer.get("hasMerchantReturnPolicy").is_none() {
         push("warning", "offer has no hasMerchantReturnPolicy".into());
@@ -474,7 +520,11 @@ pub fn ecommerce(url: Option<&str>, file: Option<&str>, json: bool) -> CmdResult
 
     let products: Vec<&Value> = blocks
         .iter()
-        .filter(|b| type_names(b).iter().any(|t| t == "Product" || t == "ProductGroup"))
+        .filter(|b| {
+            type_names(b)
+                .iter()
+                .any(|t| t == "Product" || t == "ProductGroup")
+        })
         .collect();
 
     let mut issues: Vec<Value> = Vec::new();
@@ -496,7 +546,9 @@ pub fn ecommerce(url: Option<&str>, file: Option<&str>, json: bool) -> CmdResult
                 push("error", format!("Product is missing required `{prop}`"));
             }
         }
-        let ids = ["gtin", "gtin8", "gtin12", "gtin13", "gtin14", "mpn", "sku", "isbn"];
+        let ids = [
+            "gtin", "gtin8", "gtin12", "gtin13", "gtin14", "mpn", "sku", "isbn",
+        ];
         if !ids.iter().any(|k| product.get(*k).is_some()) {
             push(
                 "error",
@@ -511,7 +563,10 @@ pub fn ecommerce(url: Option<&str>, file: Option<&str>, json: bool) -> CmdResult
             push("warning", "Product has no description".into());
         }
         if product.get("aggregateRating").is_none() && product.get("review").is_none() {
-            push("warning", "Product has neither aggregateRating nor review".into());
+            push(
+                "warning",
+                "Product has neither aggregateRating nor review".into(),
+            );
         }
 
         match product.get("offers") {

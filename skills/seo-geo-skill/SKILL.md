@@ -63,17 +63,29 @@ builds it from source instead.
 ## Step 3 — Install the skills
 
 ```bash
+seogeo install --target npx
+```
+
+This delegates to [`npx skills`](https://github.com/vercel-labs/skills), which
+supports 75+ agents. It keeps one canonical copy in `~/.agents/skills` and
+symlinks it into each agent that is present, and it is pinned to the binary's
+own tag so the skills always match the code.
+
+If Node is not available, write the directories directly instead — this needs
+no network and no npm:
+
+```bash
 seogeo install --target all
 ```
 
-This writes the skills into every agent tool it detects and skips the ones that
-are absent. To preview first:
+Preview either one first:
 
 ```bash
+seogeo install --target npx --dry-run --json
 seogeo install --target all --dry-run --json
 ```
 
-To target one tool:
+To target a single tool:
 
 ```bash
 seogeo install --target claude     # ~/.claude/skills
@@ -138,7 +150,7 @@ missing.
 ```bash
 seogeo --version
 curl -fsSL https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.sh | sh
-seogeo install --target all
+seogeo install --target npx
 ```
 
 The `geo-update` skill walks this properly, including the version comparison
