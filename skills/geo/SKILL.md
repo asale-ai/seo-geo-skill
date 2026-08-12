@@ -9,6 +9,7 @@ description: >
   client-ready GEO report generation. Use when user says "geo", "seo", "audit",
   "AI search", "AI visibility", "optimize", "citability", "llms.txt", "schema",
   "brand mentions", "GEO report", or any URL for analysis.
+license: MIT
 allowed-tools: Read, Grep, Glob, Bash, WebFetch, Write
 ---
 

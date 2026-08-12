@@ -1,6 +1,7 @@
 ---
 name: seo-seranking
 description: SE Ranking AI visibility analyst (extension). Tracks AI Share-of-Voice across ChatGPT, Gemini, Perplexity, AI Overviews, and AI Mode in a single query.
+license: MIT
 metadata:
   version: "2.2.4"
 compatibility: "Requires an SE Ranking API key (set SERANKING_API_KEY by running extensions/seranking/install.sh)."

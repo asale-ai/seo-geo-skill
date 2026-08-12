@@ -1,6 +1,7 @@
 ---
 name: geo-content
 description: Content quality and E-E-A-T assessment for AI citability — evaluate experience, expertise, authoritativeness, trustworthiness, and content structure
+license: MIT
 version: 1.0.0
 author: seo-geo-skill
 tags: [geo, content-quality, eeat, citability, ai-content, topical-authority]

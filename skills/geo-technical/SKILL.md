@@ -1,6 +1,7 @@
 ---
 name: geo-technical
 description: Technical SEO audit with GEO-specific checks — crawlability, indexability, security, performance, SSR, and AI crawler access
+license: MIT
 version: 1.0.0
 author: seo-geo-skill
 tags: [geo, technical-seo, core-web-vitals, ssr, crawlability, security, performance]

@@ -395,6 +395,7 @@ seogeo dataforseo-merchant compare "espresso machine" --json
 seogeo dataforseo-merchant sellers <product-id> --marketplace amazon --json
 
 # Price the calls before making them
+seogeo dataforseo-costs budget --set 25.00
 seogeo dataforseo-costs check merchant_google_products_search --count 25
 seogeo dataforseo-costs summary
 ```

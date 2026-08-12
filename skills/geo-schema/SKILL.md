@@ -1,6 +1,7 @@
 ---
 name: geo-schema
 description: Schema.org structured data audit and generation optimized for AI discoverability — detect, validate, and generate JSON-LD markup
+license: MIT
 version: 1.0.0
 author: seo-geo-skill
 tags: [geo, schema, structured-data, json-ld, entity-recognition, ai-discoverability]

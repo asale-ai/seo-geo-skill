@@ -1,6 +1,7 @@
 ---
 name: geo-report-pdf
 description: Generate a professional PDF report from a GEO audit using pandoc + Chrome headless. Converts GEO-AUDIT-REPORT.md into a styled, client-ready PDF with a cover page, color-coded score tables, severity-tagged findings, and a 90-day roadmap.
+license: MIT
 version: 2.0.0
 author: seo-geo-skill
 tags: [geo, pdf, report, client-deliverable, professional]

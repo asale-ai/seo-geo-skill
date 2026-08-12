@@ -28,13 +28,22 @@ point `SEOGEO_CHROME` at the executable.
 4. Check for visual layout issues, overlapping elements
 5. Verify mobile responsiveness
 
-## Screenshot Script
+## Capturing
 
-Use the screenshot script (`seogeo screenshot` in the plugin root) for browser automation:
+`seogeo screenshot` takes one URL and one output file per call, so capture each
+viewport explicitly:
 
 ```bash
-seogeo screenshot URL --all --output screenshots/
-seogeo render URL --mode auto --a11y-tree --json
+seogeo screenshot <url> -o screenshots/desktop.png --viewport 1920x1080 --json
+seogeo screenshot <url> -o screenshots/mobile.png  --viewport 375x812   --json
+seogeo screenshot <url> -o screenshots/full.png    --viewport 1280x2400 --full-page --json
+```
+
+For structure rather than pixels, the accessibility outline is cheaper to read
+and needs no image at all:
+
+```bash
+seogeo render <url> --mode auto --a11y-tree --json
 ```
 
 ## Viewports to Test

@@ -1,6 +1,7 @@
 ---
 name: geo-update
 description: Update the installed SEO + GEO skills and the seogeo CLI to the latest release. Reports the installed version, the latest published version, what changed, and reinstalls the skill set across every detected agent tool. Use when the user says "update geo", "update skills", "upgrade seogeo", "aggiorna", or asks whether a newer version exists.
+license: MIT
 allowed-tools:
   - Bash
   - Read

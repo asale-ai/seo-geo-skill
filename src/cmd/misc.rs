@@ -267,7 +267,14 @@ pub fn seo_updates(since: Option<&str>, json: bool) -> CmdResult<ExitCode> {
 
 // ---------------------------------------------------------------- sync flow
 
-const FLOW_API_ROOT: &str = "https://api.github.com/repos/AgriciDaniel/flow/contents";
+/// The FLOW prompt library lives in a third-party repository whose
+/// availability we do not control. `SEOGEO_FLOW_REPO` lets a user point at a
+/// fork or a mirror rather than being stuck when upstream moves.
+const DEFAULT_FLOW_REPO: &str = "AgriciDaniel/flow";
+
+fn flow_repo() -> String {
+    std::env::var("SEOGEO_FLOW_REPO").unwrap_or_else(|_| DEFAULT_FLOW_REPO.to_string())
+}
 
 /// Pull the FLOW prompt library (CC BY 4.0) into the seo-flow skill's
 /// reference directory. Each file gets an attribution header so the licence
@@ -277,7 +284,9 @@ pub fn sync_flow(dry_run: bool, git_ref: &str, json: bool) -> CmdResult<ExitCode
         .unwrap_or_else(|| std::path::PathBuf::from("."))
         .join(".claude/skills/seo-flow/references/flow-prompts");
 
-    let listing_url = format!("{FLOW_API_ROOT}/prompts?ref={git_ref}");
+    let repo = flow_repo();
+    let listing_url =
+        format!("https://api.github.com/repos/{repo}/contents/prompts?ref={git_ref}");
     validate_url_strict(&listing_url)?;
     let opts = RequestOptions::with_timeout(30)
         .header("Accept", "application/vnd.github+json")
@@ -286,8 +295,10 @@ pub fn sync_flow(dry_run: bool, git_ref: &str, json: bool) -> CmdResult<ExitCode
     let resp = http::get(&listing_url, &opts)?;
     if !(200..300).contains(&resp.status) {
         return err(format!(
-            "GitHub returned HTTP {} for the FLOW prompt listing. The upstream repository may be \
-             private or renamed.",
+            "GitHub returned HTTP {} for {repo}/prompts.\n\
+             The FLOW prompt library is a third-party repository; it may have been made private, \
+             renamed, or removed. This is optional — the seo-flow skill works without it.\n\
+             To use a fork or mirror: SEOGEO_FLOW_REPO=owner/name seogeo sync-flow",
             resp.status
         ));
     }
@@ -316,7 +327,7 @@ pub fn sync_flow(dry_run: bool, git_ref: &str, json: bool) -> CmdResult<ExitCode
         }
         let body = http::get(download, &RequestOptions::with_timeout(30))?;
         let content = format!(
-            "<!-- Source: github.com/AgriciDaniel/flow | License: CC BY 4.0 | \
+            "<!-- Source: github.com/{repo} | License: CC BY 4.0 | \
              synced by seogeo on {} -->\n\n{}",
             crate::output::today_utc(),
             body.text()
@@ -327,6 +338,7 @@ pub fn sync_flow(dry_run: bool, git_ref: &str, json: bool) -> CmdResult<ExitCode
     }
 
     let result = json!({
+        "repo": repo,
         "ref": git_ref,
         "destination": dest.display().to_string(),
         "available": files.len(),

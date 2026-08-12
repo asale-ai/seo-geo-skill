@@ -1,6 +1,7 @@
 ---
 name: geo-report
 description: Generate a professional, client-facing GEO report combining all audit results into a single deliverable with scores, findings, and prioritized actions
+license: MIT
 version: 1.0.0
 author: seo-geo-skill
 tags: [geo, report, client-deliverable, executive-summary, action-plan]

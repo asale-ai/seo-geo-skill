@@ -58,7 +58,7 @@ After completing data collection at any tier, offer to generate a PDF report.
 The report uses the enterprise template: white cover, navy accents, Times New Roman, charts at 85% width, Google logo on title page. No page-break-inside: avoid (causes white gaps).
 
 ```bash
-seogeo google-report --type full --data data.json --domain DOMAIN --format pdf --json
+seogeo google-report --type full --data data.json --domain DOMAIN --format pdf
 ```
 Report types: `cwv-audit`, `gsc-performance`, `indexation`, `full`.
 Before presenting: verify `"review": {"status": "PASS"}` in the JSON output.

@@ -1,6 +1,7 @@
 ---
 name: geo-audit
 description: Full website GEO+SEO audit with parallel subagent delegation. Orchestrates a comprehensive Generative Engine Optimization audit across AI citability, platform analysis, technical infrastructure, content quality, and schema markup. Produces a composite GEO Score (0-100) with prioritized action plan.
+license: MIT
 allowed-tools:
   - Read
   - Grep

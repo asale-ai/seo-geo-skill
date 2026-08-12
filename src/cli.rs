@@ -1028,6 +1028,17 @@ pub enum DfsCostAction {
         #[arg(long)]
         json: bool,
     },
+    /// Show or set the spend budget the other commands report against
+    Budget {
+        /// Set the budget in USD; omit to just show the current one
+        #[arg(long)]
+        set: Option<f64>,
+        /// Remove the budget entirely
+        #[arg(long)]
+        clear: bool,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]

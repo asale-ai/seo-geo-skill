@@ -1,6 +1,7 @@
 ---
 name: geo-platform-optimizer
 description: Platform-specific AI search optimization — audit and optimize for Google AI Overviews, ChatGPT, Perplexity, Gemini, and Bing Copilot individually
+license: MIT
 version: 1.0.0
 author: seo-geo-skill
 tags: [geo, ai-search, platform-optimization, chatgpt, perplexity, gemini, aio]

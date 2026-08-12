@@ -82,9 +82,24 @@ Load prompt files on demand, only for the stage the user requests.
 2. Display the full index: all 41 prompts with stage, name, trigger conditions
 
 ### On `/seo flow sync`
-1. Run: `seogeo sync-flow`
-2. Display the JSON summary (files added, updated, unchanged)
-3. Show attribution notice after sync completes
+
+The prompt library lives in a third-party repository (CC BY 4.0), not in this
+skill. Syncing is optional — the FLOW *method* below works without it; only the
+41 verbatim prompts need the sync.
+
+1. Preview first: `seogeo sync-flow --dry-run --json`
+2. Then: `seogeo sync-flow --json`
+3. Display the summary (`available`, `written`, `destination`)
+4. Every synced file carries a CC BY 4.0 attribution header; say so
+
+If the sync returns HTTP 404, the upstream repository has moved or gone
+private. Do not retry in a loop and do not present the framework as broken —
+say the prompt library is unavailable, and continue with the stage guidance in
+this file. A user with a fork can point at it:
+
+```bash
+SEOGEO_FLOW_REPO=owner/name seogeo sync-flow --json
+```
 
 ---
 
@@ -130,7 +145,7 @@ Do not omit or modify the attribution.
 
 | Scenario | Action |
 |----------|--------|
-| `references/flow-framework.md` missing | "FLOW reference files not synced. Run: `/seo flow sync`" |
-| Prompt file missing | "Run `/seo flow sync` to pull the latest prompts from the FLOW repo." |
-| `seogeo sync-flow` network error | Display the script's stderr. Check rate limits: `gh api rate_limit`. |
-| `seogeo sync-flow` auth error | Run `gh auth login` then retry. |
+| `references/flow-framework.md` missing | The stage guidance in this file still applies. Offer `/seo flow sync` for the verbatim prompts. |
+| Prompt file missing | Offer `/seo flow sync`. Do not invent prompt text to fill the gap. |
+| `seogeo sync-flow` returns 404 | The upstream repository is gone or private. Say so once, continue with this file's guidance, and mention `SEOGEO_FLOW_REPO` for users with a fork. |
+| `seogeo sync-flow` network error | Show the stderr verbatim. If the network blocks the client, `SEOGEO_PROXY` is the fix. |

@@ -89,7 +89,7 @@ Before returning results, run the automated validator AND manual checks.
 ### Step 1: Automated validation
 Save all collected data to a JSON file and run:
 ```bash
-seogeo validate-backlink-report --report report_data.json --json
+seogeo validate-backlink-report report_data.json --json
 ```
 The validator checks: schema claims, JS false negatives, H1 accuracy, reciprocal links,
 CC interpretation, and health score sufficiency. If status is "FAIL", fix errors before proceeding.

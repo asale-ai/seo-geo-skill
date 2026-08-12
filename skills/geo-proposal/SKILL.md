@@ -6,6 +6,7 @@ description: >
   recommended service packages (Basic/Standard/Premium), pricing, timeline, and terms.
   Use when user says "proposal", "proposta", "offerta", "preventivo", "generate proposal",
   or after completing a GEO audit for a prospect.
+license: MIT
 version: 1.0.0
 tags: [geo, business, proposal, sales, pricing, client]
 allowed-tools: Read, Write, Bash, Glob, WebFetch

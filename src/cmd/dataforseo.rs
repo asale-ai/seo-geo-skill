@@ -107,6 +107,9 @@ pub fn costs(action: DfsCostAction) -> CmdResult<ExitCode> {
                 "estimated_cost_usd": total,
                 "spent_to_date_usd": spent,
                 "budget_usd": ledger["budget_usd"],
+                "remaining_after_usd": ledger["budget_usd"]
+                    .as_f64()
+                    .map(|b| money(b - spent - total)),
             });
             if json {
                 print_json(&result)?;
@@ -116,8 +119,18 @@ pub fn costs(action: DfsCostAction) -> CmdResult<ExitCode> {
                 println!("  count:     {count}");
                 println!("  estimated: ${total:.5}");
                 println!("  spent:     ${spent:.5}");
+                if let Some(left) = result["remaining_after_usd"].as_f64() {
+                    println!("  remaining after this call: ${left:.5}");
+                    if left < 0.0 {
+                        println!("  this call would exceed the configured budget");
+                    }
+                }
             }
-            OK
+            // Refuse silently-over-budget spending: the caller can gate on this.
+            Ok(match result["remaining_after_usd"].as_f64() {
+                Some(left) if left < 0.0 => ExitCode::from(1),
+                _ => ExitCode::SUCCESS,
+            })
         }
         DfsCostAction::Log {
             endpoint,
@@ -179,6 +192,48 @@ pub fn costs(action: DfsCostAction) -> CmdResult<ExitCode> {
                 }
             }
             OK
+        }
+        DfsCostAction::Budget { set, clear, json } => {
+            let mut ledger = load_ledger();
+            if clear {
+                ledger["budget_usd"] = Value::Null;
+                save_ledger(&ledger)?;
+            } else if let Some(value) = set {
+                if value < 0.0 {
+                    return err("--set must not be negative");
+                }
+                ledger["budget_usd"] = json!(money(value));
+                save_ledger(&ledger)?;
+            }
+
+            let spent = spend_to_date(&ledger);
+            let budget = ledger["budget_usd"].as_f64();
+            let remaining = budget.map(|b| money(b - spent));
+            let result = json!({
+                "ledger": ledger_path().display().to_string(),
+                "budget_usd": budget,
+                "spent_to_date_usd": spent,
+                "remaining_usd": remaining,
+                "over_budget": remaining.is_some_and(|r| r < 0.0),
+            });
+            if json {
+                print_json(&result)?;
+            } else {
+                match budget {
+                    None => println!("No budget set. Set one with: seogeo dataforseo-costs budget --set 10.00"),
+                    Some(b) => {
+                        println!("Budget:    ${b:.2}");
+                        println!("Spent:     ${spent:.5}");
+                        println!("Remaining: ${:.5}", remaining.unwrap_or(0.0));
+                    }
+                }
+            }
+            // Exit non-zero when over budget so a pipeline can gate on it.
+            Ok(if result["over_budget"] == true {
+                ExitCode::from(1)
+            } else {
+                ExitCode::SUCCESS
+            })
         }
         DfsCostAction::List { json } => {
             let rows: Vec<Value> = PRICES

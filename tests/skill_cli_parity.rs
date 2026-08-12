@@ -298,3 +298,190 @@ fn no_skill_still_references_a_python_script() {
         offenders.join("\n  ")
     );
 }
+
+/// Split a documented shell line into argv, honouring quotes and stopping at a
+/// comment, pipe, or redirect. Deliberately small: the goal is to read the
+/// flags a skill documents, not to be a shell.
+fn tokenize(line: &str) -> Vec<String> {
+    let mut out = Vec::new();
+    let mut cur = String::new();
+    let mut quote: Option<char> = None;
+    let mut chars = line.chars().peekable();
+
+    while let Some(c) = chars.next() {
+        match (quote, c) {
+            (Some(q), ch) if ch == q => quote = None,
+            (Some(_), ch) => cur.push(ch),
+            (None, '"') | (None, '\'') => quote = Some(c),
+            (None, '#') | (None, '|') | (None, '>') => break,
+            (None, '\\') => {
+                // A trailing backslash continues the line; anything else is an
+                // escape we can drop.
+                if chars.peek().is_none() {
+                    break;
+                }
+            }
+            (None, ch) if ch.is_whitespace() => {
+                if !cur.is_empty() {
+                    out.push(std::mem::take(&mut cur));
+                }
+            }
+            (None, ch) => cur.push(ch),
+        }
+    }
+    if !cur.is_empty() {
+        out.push(cur);
+    }
+    out
+}
+
+/// Every `seogeo …` command line documented in a skill or agent, one per entry,
+/// paired with the file and line it came from.
+fn documented_command_lines() -> Vec<(String, String)> {
+    let mut out = Vec::new();
+    for dir in ["skills", "agents"] {
+        for path in markdown_files(&repo_root().join(dir)) {
+            let text = std::fs::read_to_string(&path).unwrap_or_default();
+            let label = path
+                .strip_prefix(repo_root())
+                .unwrap_or(&path)
+                .display()
+                .to_string();
+            let mut in_fence = false;
+            for (n, line) in text.lines().enumerate() {
+                if line.trim_start().starts_with("```") {
+                    in_fence = !in_fence;
+                    continue;
+                }
+                let mut candidates: Vec<String> = Vec::new();
+                if in_fence && line.contains("seogeo ") {
+                    candidates.push(line.trim().to_string());
+                } else {
+                    let mut rest = line;
+                    while let Some(open) = rest.find('`') {
+                        let after = &rest[open + 1..];
+                        let Some(close) = after.find('`') else { break };
+                        let span = &after[..close];
+                        if span.contains("seogeo ") {
+                            candidates.push(span.to_string());
+                        }
+                        rest = &after[close + 1..];
+                    }
+                }
+                for c in candidates {
+                    if let Some(idx) = c.find("seogeo ") {
+                        out.push((format!("{label}:{}", n + 1), c[idx..].to_string()));
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
+fn help_text(argv: &[String]) -> String {
+    let out = Command::new(BIN)
+        .args(argv)
+        .arg("--help")
+        .output()
+        .expect("seogeo --help should run");
+    String::from_utf8_lossy(&out.stdout).into_owned()
+}
+
+fn flags_in(help: &str) -> BTreeSet<String> {
+    let mut flags = BTreeSet::new();
+    let mut word = String::new();
+    let mut chars = help.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '-' && chars.peek() == Some(&'-') {
+            chars.next();
+            word.clear();
+            while let Some(&n) = chars.peek() {
+                if n.is_ascii_lowercase() || n.is_ascii_digit() || n == '-' {
+                    word.push(n);
+                    chars.next();
+                } else {
+                    break;
+                }
+            }
+            if !word.is_empty() {
+                flags.insert(format!("--{word}"));
+            }
+        }
+    }
+    flags
+}
+
+fn subcommands_in(help: &str) -> BTreeSet<String> {
+    let mut out = BTreeSet::new();
+    let mut seen = false;
+    for line in help.lines() {
+        if line.starts_with("Commands:") {
+            seen = true;
+            continue;
+        }
+        if seen {
+            if line.starts_with("Options:") || line.starts_with(char::is_alphabetic) {
+                break;
+            }
+            if let Some(word) = line.trim().split_whitespace().next() {
+                if word.starts_with(|c: char| c.is_ascii_lowercase()) {
+                    out.insert(word.to_string());
+                }
+            }
+        }
+    }
+    out
+}
+
+/// A skill that documents a flag the CLI does not accept produces a usage
+/// error in front of a user, which is worse than no documentation at all.
+#[test]
+fn documented_flags_exist() {
+    let mut problems = Vec::new();
+
+    for (where_, line) in documented_command_lines() {
+        let tokens = tokenize(&line);
+        if tokens.len() < 2 || tokens[0] != "seogeo" {
+            continue;
+        }
+        let mut argv = vec![tokens[1].clone()];
+        if argv[0].starts_with('-') {
+            continue; // `seogeo --version`
+        }
+        let mut rest = &tokens[2..];
+
+        // Descend one level into subcommand groups (drift baseline, moz metrics…).
+        let help = help_text(&argv);
+        if let Some(first) = rest.first() {
+            if subcommands_in(&help).contains(first) {
+                argv.push(first.clone());
+                rest = &rest[1..];
+            }
+        }
+
+        let valid = flags_in(&help_text(&argv));
+        for tok in rest {
+            if !tok.starts_with("--") {
+                continue;
+            }
+            let name = tok.split('=').next().unwrap_or(tok);
+            // Placeholders inside angle brackets are prose, not flags.
+            if name.contains('<') || name.contains('>') {
+                continue;
+            }
+            if !valid.contains(name) {
+                problems.push(format!(
+                    "{where_}: `seogeo {}` has no {name}\n      in: {line}",
+                    argv.join(" ")
+                ));
+            }
+        }
+    }
+
+    assert!(
+        problems.is_empty(),
+        "skills document flags the CLI does not accept:\n  {}",
+        problems.join("\n  ")
+    );
+}

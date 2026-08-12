@@ -31,7 +31,22 @@
 | **Aggressive** | $50.00 | $2.00 | threshold | Agency bulk work |
 | **Unlimited** | $999.00 | -- | none | Trusted pipelines |
 
-Configure with: `seogeo dataforseo-costs config --mode threshold --threshold 0.50 --daily-limit 10.00`
+Set the budget, then price every call against it before spending:
+
+```bash
+seogeo dataforseo-costs budget --set 10.00
+seogeo dataforseo-costs check serp_organic_live_advanced --count 250
+```
+
+`check` reports `remaining_after_usd` and exits non-zero when the call would
+push spend past the budget — so a pipeline can gate on it rather than
+discovering the overrun on the invoice. After the call lands, record the actual
+charge, which is what keeps the ledger honest against DataForSEO's own billing:
+
+```bash
+seogeo dataforseo-costs log serp_organic_live_advanced 0.47
+seogeo dataforseo-costs summary --json
+```
 
 ## Cost Reduction Tips
 
