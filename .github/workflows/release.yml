@@ -1,0 +1,199 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag to build (must already exist)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: "0"
+
+jobs:
+  build:
+    name: ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-14
+          - target: x86_64-apple-darwin
+            os: macos-14
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-22.04
+            cross: true
+          # musl builds run anywhere glibc does not, including Alpine images
+          # and older distributions, which is why they ship alongside gnu.
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-22.04
+            cross: true
+          - target: aarch64-unknown-linux-musl
+            os: ubuntu-22.04
+            cross: true
+          - target: x86_64-pc-windows-msvc
+            os: windows-2022
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref }}
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Install cross
+        if: matrix.cross
+        run: cargo install cross --git https://github.com/cross-rs/cross --locked
+
+      - name: Build
+        shell: bash
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --locked --target ${{ matrix.target }}
+          else
+            cargo build --release --locked --target ${{ matrix.target }}
+          fi
+
+      - name: Smoke test
+        # Only native targets can execute here; the cross-built ones are
+        # verified after download in the `verify` job.
+        if: ${{ !matrix.cross }}
+        shell: bash
+        run: |
+          BIN=target/${{ matrix.target }}/release/seogeo
+          [ -f "$BIN.exe" ] && BIN="$BIN.exe"
+          "$BIN" --version
+          "$BIN" commands --json > /dev/null
+          "$BIN" install --list
+          "$BIN" schema-generate organization --name Probe --url https://example.com > /dev/null
+          "$BIN" url-safety http://169.254.169.254/ && exit 1 || true
+
+      - name: Package
+        id: package
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          [ "${{ github.event_name }}" = "workflow_dispatch" ] && VERSION="${{ github.event.inputs.tag }}" && VERSION="${VERSION#v}"
+          NAME="seogeo-${VERSION}-${{ matrix.target }}"
+          mkdir -p "dist/$NAME"
+          if [ "${{ matrix.os }}" = "windows-2022" ]; then
+            cp "target/${{ matrix.target }}/release/seogeo.exe" "dist/$NAME/"
+          else
+            cp "target/${{ matrix.target }}/release/seogeo" "dist/$NAME/"
+          fi
+          cp README.md LICENSE SECURITY.md THIRD-PARTY-NOTICES.md "dist/$NAME/"
+          cd dist
+          if [ "${{ matrix.os }}" = "windows-2022" ]; then
+            7z a -tzip "$NAME.zip" "$NAME" > /dev/null
+            echo "asset=$NAME.zip" >> "$GITHUB_OUTPUT"
+          else
+            tar czf "$NAME.tar.gz" "$NAME"
+            echo "asset=$NAME.tar.gz" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.target }}
+          path: dist/${{ steps.package.outputs.asset }}
+          if-no-files-found: error
+
+  release:
+    name: Publish release
+    needs: build
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          set -euo pipefail
+          cd artifacts
+          ls -la
+          # Names, not paths: `shasum -c` is then runnable from the download
+          # directory without editing the file.
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.tag || github.ref_name }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: artifacts/*
+
+  verify:
+    name: Verify ${{ matrix.target }} download
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: aarch64-apple-darwin
+            os: macos-14
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-22.04
+          - target: x86_64-unknown-linux-musl
+            os: ubuntu-22.04
+          - target: aarch64-unknown-linux-gnu
+            os: ubuntu-24.04-arm
+          - target: x86_64-pc-windows-msvc
+            os: windows-2022
+    steps:
+      # Downloads the published asset the way a user would, verifies the
+      # checksum, and runs the binary. A release that cannot be installed is
+      # not a release.
+      - name: Download, verify, and run
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          VERSION="${TAG#v}"
+          case "${{ matrix.target }}" in
+            *windows*) ASSET="seogeo-${VERSION}-${{ matrix.target }}.zip" ;;
+            *)         ASSET="seogeo-${VERSION}-${{ matrix.target }}.tar.gz" ;;
+          esac
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+            --pattern "$ASSET" --pattern "SHA256SUMS" --clobber
+          if command -v sha256sum > /dev/null; then
+            sha256sum --ignore-missing -c SHA256SUMS
+          else
+            shasum -a 256 --ignore-missing -c SHA256SUMS
+          fi
+          case "$ASSET" in
+            *.zip) unzip -q "$ASSET" ;;
+            *)     tar xzf "$ASSET" ;;
+          esac
+          DIR="seogeo-${VERSION}-${{ matrix.target }}"
+          BIN="$DIR/seogeo"
+          [ -f "$BIN.exe" ] && BIN="$BIN.exe"
+          chmod +x "$BIN" || true
+          "$BIN" --version
+          "$BIN" commands --json | head -5
+          "$BIN" install --list
