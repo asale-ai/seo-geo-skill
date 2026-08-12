@@ -1,0 +1,52 @@
+name: Bug report
+description: Something in a skill or in the seogeo binary does not behave as documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste API keys, tokens, or credentials into this issue.
+  - type: input
+    id: version
+    attributes:
+      label: Output of seogeo --version
+      placeholder: "0.1.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - macOS (Apple Silicon)
+        - macOS (Intel)
+        - Linux x86_64
+        - Linux aarch64
+        - Windows
+    validations:
+      required: true
+  - type: input
+    id: command
+    attributes:
+      label: Command or skill invoked
+      placeholder: "seogeo audit https://example.com"
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected to happen
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: What happened instead
+      description: Paste the relevant output, with credentials redacted.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Environment details
+      description: Proxy settings, whether Chrome or Node is installed, anything unusual about the target site.
