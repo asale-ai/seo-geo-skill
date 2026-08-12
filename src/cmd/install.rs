@@ -167,13 +167,24 @@ pub fn run(
         only.to_vec()
     };
 
-    let targets = selected(target);
+    let mut targets = selected(target);
+
+    // On a machine with no agent tool yet, `--target all` would skip every
+    // target and leave the user with a binary and no skills — a silent
+    // no-op dressed up as success. Claude Code's directory is the widest
+    // fallback: Claude Code and OpenCode both read it.
+    let mut fallback_used = false;
+    if matches!(target, InstallTarget::All) && dir.is_none() && !targets.iter().any(|t| detected(t)) {
+        targets = spec("claude").into_iter().collect();
+        fallback_used = true;
+    }
+
     let mut installed = Vec::new();
 
     for t in &targets {
         // --all installs only where the tool is actually present, so a user
         // running it does not litter their home directory with dead paths.
-        if matches!(target, InstallTarget::All) && !detected(t) && dir.is_none() {
+        if matches!(target, InstallTarget::All) && !fallback_used && !detected(t) && dir.is_none() {
             installed.push(json!({
                 "target": t.id, "skipped": true,
                 "reason": format!("{} not detected ({} missing)", t.label, t.probe_dir),
@@ -226,6 +237,10 @@ pub fn run(
                     manifest_dir.join("gemini-extension.json"),
                     serde_json::to_string_pretty(&manifest)?,
                 )?;
+                // The manifest names a context file; shipping the manifest
+                // without the file it points at would leave a dangling
+                // reference on every Gemini CLI start.
+                std::fs::write(manifest_dir.join("GEMINI.md"), gemini_context(&wanted))?;
             }
         }
 
@@ -244,6 +259,7 @@ pub fn run(
     let result = json!({
         "installed": installed,
         "skills": wanted,
+        "no_target_detected": fallback_used,
         "seogeo_on_path": binary_on_path,
         "note": if binary_on_path {
             "The skills call `seogeo`, which is on PATH."
@@ -268,11 +284,43 @@ pub fn run(
                 i["path"].as_str().unwrap_or("")
             );
         }
+        if fallback_used {
+            println!(
+                "\nNo agent tool was detected on this machine, so the skills were written to\n\
+                 the Claude Code location — Claude Code and OpenCode both read it.\n\
+                 For another tool: seogeo install --target codex|gemini|opencode|agents"
+            );
+        }
         if !binary_on_path {
             println!("\nWarning: `seogeo` is not on PATH. The skills invoke it by name.");
         }
     }
     OK
+}
+
+/// Context the Gemini CLI loads with the extension. Short on purpose: it is
+/// in context for every turn, so it says only what the model cannot discover
+/// from the skills themselves.
+fn gemini_context(skills: &[String]) -> String {
+    const BODY: &str = r#"# SEO + GEO skills
+
+{COUNT} skills for auditing a site for classic search and for answer engines
+(ChatGPT, Claude, Perplexity, Gemini, Google AI Overviews).
+
+Every skill executes through the `seogeo` binary — one static executable, no
+Python. If a command reports that `seogeo` is not found, the binary is missing
+from PATH; see the `seo-geo-skill` skill for the install steps.
+
+Useful entry points:
+
+- `seogeo commands` — every subcommand and the skills that use it
+- `seogeo <command> --help` — flags for one command
+- `seogeo google-auth --check` — which API credentials are configured
+
+Pass `--json` whenever you will parse the output; the human-readable form is
+lossy by design.
+"#;
+    BODY.replace("{COUNT}", &skills.len().to_string())
 }
 
 /// Copy an embedded skill directory, preserving `references/`, `templates/`,
