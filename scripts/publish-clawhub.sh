@@ -108,29 +108,63 @@ if [ "$DRY_RUN" = "1" ]; then
   exit 0
 fi
 
+sync_once() {
+  clawhub sync --dir "$SKILLS_DIR" --owner "$OWNER" --all --bump patch \
+    --changelog "$CHANGELOG" --tags latest "${PROVENANCE[@]}" 2>&1 | tee /dev/stderr
+}
+
 step "Uploading"
-if ! clawhub sync --dir "$SKILLS_DIR" --owner "$OWNER" --all --bump patch \
-       --changelog "$CHANGELOG" --tags latest "${PROVENANCE[@]}"; then
+LOG=$(sync_once) || SYNC_FAILED=1
+
+# A submitted skill stays invisible until its security scan clears, so a run
+# interrupted mid-way leaves the registry knowing about skills that `sync`
+# cannot yet see. The next pass then tries to publish 1.0.0 again and is
+# rejected. One retry is enough: by then the registry reports them, and sync
+# classifies them as changed and bumps the version.
+if printf '%s' "$LOG" | grep -q 'already exists'; then
+  CONFLICTS=$(printf '%s' "$LOG" | grep -c 'already exists' || true)
+  warn "$CONFLICTS skill(s) hit a version conflict from an earlier partial run; retrying once"
+  sleep 20
+  LOG=$(sync_once) || SYNC_FAILED=1
+fi
+
+if [ "${SYNC_FAILED:-0}" = "1" ] && printf '%s' "$LOG" | grep -qi 'publisher\|not found\|forbidden\|unauthor'; then
   die "clawhub sync failed.
 If this is the first publish under @$OWNER, create the publisher first:
     clawhub publisher create $OWNER"
 fi
 
 step "Verifying"
-FAILED=0
-for slug in seo geo; do
-  if clawhub inspect "@$OWNER/$slug" > /dev/null 2>&1; then
-    info "${GREEN}ok${RESET} @$OWNER/$slug"
-  else
-    warn "@$OWNER/$slug is not resolvable yet"
-    FAILED=1
-  fi
+# `sync --dry-run` is the authoritative view: it reports what the registry
+# already has versus what is still local-only.
+STATE=$(clawhub sync --dir "$SKILLS_DIR" --owner "$OWNER" --dry-run 2>&1 || true)
+PENDING=$(printf '%s' "$STATE" | grep -cE '^- ' || true)
+LOCAL_TOTAL=$SKILL_COUNT
+
+if [ "$PENDING" = "0" ]; then
+  info "${GREEN}all $LOCAL_TOTAL skill(s) are in the registry${RESET}"
+else
+  warn "$PENDING of $LOCAL_TOTAL skill(s) are not in the registry yet:"
+  printf '%s\n' "$STATE" | grep -E '^- ' | sed 's/^/      /'
+fi
+
+# Newly submitted versions are held until their security scan clears, so
+# `inspect` returning "hidden by moderation" is the expected state, not a
+# failure. Distinguish the two rather than reporting a false problem.
+for slug in seo geo seo-geo-skill; do
+  RESULT=$(clawhub inspect "@$OWNER/$slug" 2>&1 || true)
+  case "$RESULT" in
+    *"pending.publication"*) info "@$OWNER/$slug — submitted, awaiting the security scan" ;;
+    *"not publicly visible"*) warn "@$OWNER/$slug — held by moderation: $(printf '%s' "$RESULT" | head -n2 | tail -n1)" ;;
+    *"@$OWNER"*) info "${GREEN}live${RESET} @$OWNER/$slug" ;;
+    *) warn "@$OWNER/$slug — not found" ;;
+  esac
 done
 
 printf '\n'
-if [ "$FAILED" = "0" ]; then
-  printf '%sPublished.%s Install with:\n\n    clawhub install @%s/seo-geo-skill\n\n' \
-    "$GREEN" "$RESET" "$OWNER"
-else
-  warn "some skills did not resolve; check https://clawhub.ai/@$OWNER"
+printf 'Registry: https://clawhub.ai/@%s\n\n' "$OWNER"
+printf 'Install with:\n\n    clawhub install @%s/seo-geo-skill\n\n' "$OWNER"
+if [ "$PENDING" != "0" ]; then
+  warn "re-run this script once the pending scans clear to publish the rest"
+  exit 1
 fi
