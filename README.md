@@ -186,6 +186,24 @@ too if you want a clean slate.
 
 ---
 
+## Prior art
+
+This project did not start from a blank page. The skill taxonomy, the scoring
+models, and much of the domain guidance come from two MIT-licensed projects:
+
+| Project | Author | What it contributed here |
+|---------|--------|--------------------------|
+| [AgriciDaniel/claude-seo](https://github.com/AgriciDaniel/claude-seo) | agricidaniel | The `seo-*` skill family, the SEO subagents, the reference library, the schema templates |
+| [zubair-trabzada/geo-seo-claude](https://github.com/zubair-trabzada/geo-seo-claude) | Zubair Trabzada | The `geo-*` skill family, the GEO subagents, the citability and brand-authority scoring, the report templates |
+
+Both are Python-and-Claude-Code projects; the rewrite here moves every
+execution step onto the `seogeo` binary and widens the install to 75+ agents.
+If you want the originals — including the parts this port left behind — go read
+them. [Attribution](THIRD-PARTY-NOTICES.md) records the full chain, including
+the upstream community contributors whose credit travels with the code.
+
+---
+
 ## Links
 
 [Contributing](CONTRIBUTING.md) ·
