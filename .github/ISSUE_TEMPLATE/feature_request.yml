@@ -1,0 +1,30 @@
+name: Feature request
+description: Suggest a new skill, command, or check
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: What are you trying to find out about a site that the current skills cannot tell you?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behaviour
+      description: Which skill or subcommand should change, and what should the output look like?
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+  - type: checkboxes
+    id: dependencies
+    attributes:
+      label: External dependencies
+      options:
+        - label: This can work with no accounts and no API keys
+        - label: This needs a paid or keyed API (PageSpeed, Search Console, Moz, Bing, DataForSEO)
+        - label: This needs Chrome or Node to be installed
