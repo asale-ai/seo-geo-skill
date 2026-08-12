@@ -2,6 +2,12 @@
 
 # SEO + GEO Skills
 
+[![CI](https://github.com/asale-ai/seo-geo-skill/actions/workflows/ci.yml/badge.svg)](https://github.com/asale-ai/seo-geo-skill/actions/workflows/ci.yml)
+[![Latest release](https://img.shields.io/github/v/release/asale-ai/seo-geo-skill?sort=semver)](https://github.com/asale-ai/seo-geo-skill/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/asale-ai/seo-geo-skill/total)](https://github.com/asale-ai/seo-geo-skill/releases)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey)](https://github.com/asale-ai/seo-geo-skill/releases/latest)
+
 Agent skills that audit a website for classic search **and** for the answer
 engines — ChatGPT, Claude, Perplexity, Gemini, Google AI Overviews.
 
