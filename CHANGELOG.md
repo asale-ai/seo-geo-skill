@@ -10,6 +10,8 @@ running a downloaded binary.
 
 ## [Unreleased]
 
+## [0.1.4] - 2026-08-14
+
 ### Added
 
 - Continuous integration on every push and pull request: rustfmt, clippy with warnings denied,
@@ -18,6 +20,14 @@ running a downloaded binary.
 - Code of conduct, bug report and feature request issue forms, an issue chooser that points
   security reports to private advisories, and a pull request checklist.
 - This changelog.
+
+### Fixed
+
+- `content-verify` no longer reads statistics out of markup ([#8]). CSS percentages (`width:100%`,
+  `style="…"` attributes), percent-encoded URLs (`?category=%E5%93%81` yielding `93%`), inline
+  scripts and HTML comments are masked before claims are scanned, so a page whose body text
+  contains no numbers reports no claims. Citations are still read from the original markup,
+  so `<a href="https://…">` next to a claim keeps counting as a source.
 
 ## [0.1.3] - 2026-08-12
 
@@ -46,7 +56,9 @@ running a downloaded binary.
 - First public release: 48 SEO and GEO skills, 23 subagents, and the `seogeo` binary that
   executes them, with a verified multi-platform release pipeline.
 
-[Unreleased]: https://github.com/asale-ai/seo-geo-skill/compare/v0.1.3...HEAD
+[Unreleased]: https://github.com/asale-ai/seo-geo-skill/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/asale-ai/seo-geo-skill/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/asale-ai/seo-geo-skill/compare/v0.1.2...v0.1.3
 [0.1.2]: https://github.com/asale-ai/seo-geo-skill/compare/v0.1.1...v0.1.2
 [0.1.1]: https://github.com/asale-ai/seo-geo-skill/releases/tag/v0.1.1
+[#8]: https://github.com/asale-ai/seo-geo-skill/issues/8
