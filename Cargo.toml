@@ -27,7 +27,7 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 sha2 = "0.10"
 base64 = "0.22"
 time = { version = "0.3", features = ["formatting", "parsing", "macros", "local-offset"] }
-dirs = "5"
+dirs = "6"
 rsa = { version = "0.9", features = ["sha2"] }
 percent-encoding = "2.3"
 encoding_rs = "0.8"
