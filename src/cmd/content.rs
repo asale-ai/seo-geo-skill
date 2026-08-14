@@ -628,11 +628,68 @@ fn citation_near(text: &str, position: usize, window: usize) -> Option<String> {
     None
 }
 
+/// Tags whose body is code or styling rather than prose. Their contents are
+/// blanked before claims are scanned so a `width:100%` rule never reads as a
+/// statistic.
+const NON_PROSE_TAGS: &[&str] = &["script", "style", "noscript", "template"];
+
+/// Blank out everything that is markup rather than prose, keeping byte
+/// offsets intact so claim positions and the citation window still refer to
+/// the caller's text.
+///
+/// Three sources of phantom statistics, all reported against real pages:
+/// `<style>` bodies and `style="width:100%"` attributes, the `%E5%93%81`
+/// bytes of a percent-encoded `href` (a bare `\d+%` pattern reads `93%` out
+/// of them), and inline scripts. Masking rather than deleting means the
+/// citation scan still sees the original `<a href="https://…">` markup.
+fn mask_non_prose(text: &str) -> String {
+    // Cheap bail-out: prose with no markup and no escapes is already clean.
+    if !text.contains('<') && !text.contains('%') {
+        return text.to_string();
+    }
+
+    let mut masked = text.to_string();
+    let mut patterns: Vec<String> = Vec::new();
+    for tag in NON_PROSE_TAGS {
+        patterns.push(format!(r"(?is)<{tag}\b[^>]*>.*?</{tag}\s*>"));
+    }
+    // A truncated or unterminated script/style leaves its body exposed; the
+    // rest of the input is that body, so mask to the end.
+    for tag in ["script", "style"] {
+        patterns.push(format!(r"(?is)<{tag}\b[^>]*>.*"));
+    }
+    patterns.push(r"(?s)<!--.*?-->".to_string());
+    // Any remaining tag, so no attribute value reaches the claim patterns.
+    patterns.push(r"(?s)<[a-zA-Z/!?][^>]*>".to_string());
+    // Percent-encoding: `%E5%93%81` looks like `93%` to a `\d+\s*%` pattern.
+    patterns.push(r"%[0-9A-Fa-f]{2}".to_string());
+
+    for pattern in &patterns {
+        let re = Regex::new(pattern).expect("static regex");
+        let mut out = String::with_capacity(masked.len());
+        let mut last = 0;
+        for m in re.find_iter(&masked) {
+            out.push_str(&masked[last..m.start()]);
+            // Same byte length, so every offset downstream still lines up.
+            out.push_str(&" ".repeat(m.end() - m.start()));
+            last = m.end();
+        }
+        out.push_str(&masked[last..]);
+        masked = out;
+    }
+    masked
+}
+
+fn collapse_ws(text: &str) -> String {
+    text.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
 pub fn extract_claims(text: &str) -> Vec<Claim> {
+    let scannable = mask_non_prose(text);
     let mut spans: Vec<(usize, usize, &str)> = Vec::new();
     for (pattern, label) in CLAIM_PATTERNS {
         let re = Regex::new(pattern).expect("static regex");
-        for m in re.find_iter(text) {
+        for m in re.find_iter(&scannable) {
             let overlaps = spans.iter().any(|(s, e, _)| {
                 (*s <= m.start() && m.start() < *e) || (*s < m.end() && m.end() <= *e)
             });
@@ -647,9 +704,13 @@ pub fn extract_claims(text: &str) -> Vec<Claim> {
     spans
         .into_iter()
         .map(|(start, end, label)| {
+            // Citations are read from the original: `<a href="https://…">` is
+            // the signal, and masking it away would flag every linked claim.
             let cite = citation_near(text, start, 200);
             Claim {
-                text: text[start..end].trim().to_string(),
+                // Sliced from the masked copy so a claim that spans an inline
+                // tag reports `50 %` rather than `50</b>%`.
+                text: collapse_ws(scannable[start..end].trim()),
                 kind: label.to_string(),
                 position: start,
                 has_citation: cite.is_some(),
@@ -733,6 +794,54 @@ mod tests {
             claims.last().unwrap().has_citation,
             "linked claim should be cited"
         );
+    }
+
+    #[test]
+    fn css_and_percent_encoded_urls_are_not_statistics() {
+        // Reported against a page whose body has no numbers at all: inline
+        // CSS and the %xx bytes of a Chinese query string produced 13 GAPs.
+        let html = r#"<html><head><style>.hero{width:100%;height:100%}</style></head>
+            <body>
+              <div style="transition:transform 0.35s cubic-bezier(0.25,0.46,0.45,0.94);width:100%">
+                <a href="/?category=%E5%93%81%E7%89%8C%E6%B4%BB%E5%8A%A8">品牌活动</a>
+              </div>
+              <script>var ratio = 0.93; el.style.width = "81%";</script>
+              <!-- 94% of the noise used to come from here -->
+              <p>关于我们的介绍文字，没有任何统计数据。</p>
+            </body></html>"#;
+        let claims = extract_claims(html);
+        assert!(claims.is_empty(), "got {claims:?}");
+    }
+
+    #[test]
+    fn statistics_in_body_text_still_register() {
+        let html = "<p>Adoption reached <strong>47%</strong> of teams last year.</p>";
+        let claims = extract_claims(html);
+        assert_eq!(claims.len(), 1, "got {claims:?}");
+        // The masked `</strong>` reads as whitespace, so the claim still
+        // spans the inline tag instead of being cut short at `47%`.
+        assert_eq!(claims[0].text, "47% of teams last year");
+        assert!(!claims[0].has_citation);
+        // Positions stay anchored to the caller's text.
+        assert_eq!(&html[claims[0].position..claims[0].position + 3], "47%");
+    }
+
+    #[test]
+    fn html_anchors_still_count_as_citations() {
+        // Masking hides markup from the claim scan, not from the citation
+        // scan — otherwise every linked statistic would read as a gap.
+        let html = r#"<p>Adoption reached 47% of teams
+            (<a href="https://example.com/report">source</a>).</p>"#;
+        let claims = extract_claims(html);
+        assert_eq!(claims.len(), 1, "got {claims:?}");
+        assert!(claims[0].has_citation, "got {claims:?}");
+    }
+
+    #[test]
+    fn percent_encoding_in_plain_markdown_is_ignored() {
+        let text = "See [品牌](https://example.com/?category=%E5%93%81%E7%89%8C) for details.";
+        let claims = extract_claims(text);
+        assert!(claims.is_empty(), "got {claims:?}");
     }
 
     #[test]
