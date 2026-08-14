@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 #
-# Unattended release. Bumps the version, commits everything in the working
-# tree with the message you give it, pushes, tags, and pushes the tag — which
-# triggers .github/workflows/release.yml.
+# Unattended release. Bumps the version on a release branch, opens a pull
+# request against main, lets it auto-merge once the required checks pass, then
+# tags the commit that actually landed — which triggers
+# .github/workflows/release.yml.
 #
 #   ./publish.sh "fix hreflang self-reference detection"
 #   ./publish.sh --minor "add UCP auditing"
 #   ./publish.sh --version 1.0.0 "first stable release"
 #   ./publish.sh --clawhub "publish skills to ClawHub too"
+#
+# main is protected by a ruleset that nobody can bypass, so the direct push
+# this script used to do is rejected by the server. Everything still runs
+# without a prompt: the ruleset requires a pull request but zero approvals.
 #
 # There is no interactive confirmation anywhere. Everything that could need a
 # decision is a flag with a documented default.
@@ -16,6 +21,7 @@
 set -euo pipefail
 
 REPO_SLUG="asale-ai/seo-geo-skill"
+BASE_BRANCH="main"
 BUMP="patch"
 EXPLICIT_VERSION=""
 DRY_RUN=0
@@ -35,14 +41,14 @@ warn() { printf '%swarning:%s %s\n' "$YELLOW" "$RESET" "$*" >&2; }
 die()  { printf '%serror:%s %s\n' "$RED" "$RESET" "$*" >&2; exit 1; }
 
 usage() {
-  sed -n '3,20p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '3,19p' "$0" | sed 's/^# \{0,1\}//'
   cat <<'EOF'
 
 Flags:
   --patch | --minor | --major   Which component to bump (default: --patch)
   --version X.Y.Z               Set an exact version instead of bumping
   --clawhub                     Also publish the skills to ClawHub
-  --skip-tests                  Skip cargo test (not recommended)
+  --skip-tests                  Skip the local cargo test (CI still gates the PR)
   --dry-run                     Print what would happen; change nothing
   -h, --help                    This text
 EOF
@@ -80,23 +86,25 @@ run() {
 step "Preflight"
 command -v cargo > /dev/null || die "cargo is not installed"
 command -v git   > /dev/null || die "git is not installed"
+# gh is no longer optional: opening and merging the pull request is the only
+# way onto main.
+command -v gh    > /dev/null || die "gh is not installed (brew install gh)"
+gh auth status > /dev/null 2>&1 || die "gh is not authenticated; run: gh auth login"
 git rev-parse --git-dir > /dev/null 2>&1 || die "not a git repository"
 
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
-info "branch: $BRANCH"
+git remote get-url origin > /dev/null 2>&1 || die "no 'origin' remote configured"
 
-if ! git remote get-url origin > /dev/null 2>&1; then
-  die "no 'origin' remote configured"
-fi
+START_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+info "starting from: $START_BRANCH"
 
-# Fetching first means a stale local branch fails here rather than after the
-# version has already been bumped and committed.
-git fetch --quiet origin "$BRANCH" 2>/dev/null || warn "could not fetch origin/$BRANCH"
-if git rev-parse --verify --quiet "origin/$BRANCH" > /dev/null; then
-  BEHIND=$(git rev-list --count "HEAD..origin/$BRANCH")
-  if [ "$BEHIND" != "0" ]; then
-    die "local $BRANCH is $BEHIND commit(s) behind origin. Pull, then re-run."
-  fi
+git fetch --quiet origin "$BASE_BRANCH" || die "could not fetch origin/$BASE_BRANCH"
+
+# The ruleset sets strict_required_status_checks_policy, so a pull request
+# based on a stale main cannot merge. Failing here beats failing after the
+# version has been bumped, committed, and pushed.
+BEHIND=$(git rev-list --count "HEAD..origin/$BASE_BRANCH")
+if [ "$BEHIND" != "0" ]; then
+  die "HEAD is $BEHIND commit(s) behind origin/$BASE_BRANCH. Pull, then re-run."
 fi
 
 # ------------------------------------------------------------ version
@@ -117,13 +125,22 @@ else
   esac
 fi
 
+RELEASE_BRANCH="release/v$NEW"
+
 step "Version $CURRENT -> $NEW"
 
+# The tag ruleset forbids deletion, update, and non-fast-forward on refs/tags/v*
+# with no bypass actor, so a tag pushed at the wrong commit can never be
+# repaired — only abandoned for a higher version. Hence the checks below, and
+# hence the tag is created at the very end, against what is actually on main.
 if git rev-parse --verify --quiet "refs/tags/v$NEW" > /dev/null; then
-  die "tag v$NEW already exists. Pass --version with a higher number."
+  die "tag v$NEW already exists locally. Pass --version with a higher number."
 fi
 if git ls-remote --exit-code --tags origin "refs/tags/v$NEW" > /dev/null 2>&1; then
   die "tag v$NEW already exists on origin. Pass --version with a higher number."
+fi
+if git rev-parse --verify --quiet "refs/heads/$RELEASE_BRANCH" > /dev/null; then
+  die "branch $RELEASE_BRANCH already exists locally. Delete it, or use --version."
 fi
 
 # ------------------------------------------------------------ tests
@@ -133,11 +150,16 @@ if [ "$SKIP_TESTS" = "0" ]; then
   if [ "$DRY_RUN" = "1" ]; then
     info "[dry-run] cargo test --locked"
   else
-    cargo test --locked || die "tests failed — nothing was committed or tagged"
+    cargo test --locked || die "tests failed — nothing was committed or pushed"
   fi
 else
-  warn "skipping tests"
+  warn "skipping the local test run; CI still gates the pull request"
 fi
+
+# ------------------------------------------------------------ release branch
+
+step "Release branch $RELEASE_BRANCH"
+run git switch -c "$RELEASE_BRANCH"
 
 # ------------------------------------------------------------ bump
 
@@ -164,36 +186,124 @@ step "Committing"
 if [ "$DRY_RUN" = "0" ]; then
   git add -A
   if git diff --cached --quiet; then
-    warn "nothing to commit; tagging the current HEAD"
-  else
-    git commit -q -m "$MESSAGE" -m "Release v$NEW"
-    info "$(git log -1 --oneline)"
+    die "nothing to commit — a pull request needs at least one commit"
   fi
+  git commit -q -m "$MESSAGE" -m "Release v$NEW"
+  info "$(git log -1 --oneline)"
 else
   info "[dry-run] git add -A && git commit -m \"$MESSAGE\""
 fi
 
-step "Pushing $BRANCH"
-run git push origin "$BRANCH"
+step "Pushing $RELEASE_BRANCH"
+run git push -u origin "$RELEASE_BRANCH"
+
+# ------------------------------------------------------------ pull request
+
+step "Opening the pull request"
+PR_NUM=""
+if [ "$DRY_RUN" = "0" ]; then
+  gh pr create \
+    --base "$BASE_BRANCH" --head "$RELEASE_BRANCH" \
+    --title "$MESSAGE" \
+    --body "Release v$NEW.
+
+$MESSAGE
+
+Opened by publish.sh; merges itself once the required checks pass." > /dev/null
+  PR_NUM=$(gh pr view "$RELEASE_BRANCH" --json number --jq .number)
+  info "#$PR_NUM $(gh pr view "$PR_NUM" --json url --jq .url)"
+else
+  info "[dry-run] gh pr create --base $BASE_BRANCH --head $RELEASE_BRANCH"
+fi
+
+step "Merging"
+if [ "$DRY_RUN" = "1" ]; then
+  info "[dry-run] gh pr merge --squash --delete-branch"
+elif gh pr merge "$PR_NUM" --squash --auto --delete-branch 2>/dev/null; then
+  # Auto-merge is the race-free path: GitHub merges the moment the last
+  # required check reports green.
+  info "auto-merge armed; waiting for the required checks"
+else
+  # allow_auto_merge is off on the repository, so watch the checks here and
+  # merge by hand once they pass.
+  warn "auto-merge unavailable; watching the required checks instead"
+  gh pr checks "$PR_NUM" --watch --required --fail-fast \
+    || die "required checks failed on #$PR_NUM. The release branch is still
+open; fix it, push to $RELEASE_BRANCH, and merge the pull request yourself."
+  gh pr merge "$PR_NUM" --squash --delete-branch \
+    || die "could not merge #$PR_NUM"
+fi
+
+# ------------------------------------------------------------ wait for main
+
+step "Waiting for #${PR_NUM:-?} to land"
+MERGE_SHA=""
+if [ "$DRY_RUN" = "0" ]; then
+  STATE=""
+  for _ in $(seq 1 180); do
+    STATE=$(gh pr view "$PR_NUM" --json state --jq .state 2>/dev/null || echo "")
+    case "$STATE" in
+      MERGED) break ;;
+      CLOSED) die "#$PR_NUM was closed without merging" ;;
+    esac
+    sleep 10
+  done
+  [ "$STATE" = "MERGED" ] || die "timed out waiting for #$PR_NUM to merge.
+Nothing was tagged. Check: gh pr view $PR_NUM --web"
+  MERGE_SHA=$(gh pr view "$PR_NUM" --json mergeCommit --jq .mergeCommit.oid)
+  info "merged as ${MERGE_SHA:0:12}"
+else
+  info "[dry-run] poll until the pull request reports MERGED"
+fi
+
+step "Syncing $BASE_BRANCH"
+run git switch "$BASE_BRANCH"
+run git fetch origin "$BASE_BRANCH"
+# The squash rewrote history: the commit built locally is not the commit on
+# main. Discarding the local branch is the point, not a side effect.
+run git reset --hard "origin/$BASE_BRANCH"
+run git branch -D "$RELEASE_BRANCH"
+
+# ------------------------------------------------------------ tag
+
+if [ "$DRY_RUN" = "0" ]; then
+  HEAD_SHA=$(git rev-parse HEAD)
+  [ "$HEAD_SHA" = "$MERGE_SHA" ] \
+    || die "origin/$BASE_BRANCH is at ${HEAD_SHA:0:12}, not the merge commit
+${MERGE_SHA:0:12}. Something else landed; nothing was tagged."
+  # Last line of defence before an untouchable tag: main really does carry the
+  # version this release claims.
+  LANDED=$(grep -m1 '^version = ' Cargo.toml | sed 's/version = "\(.*\)"/\1/')
+  [ "$LANDED" = "$NEW" ] \
+    || die "main reads version $LANDED, not $NEW. Nothing was tagged."
+fi
 
 step "Tagging v$NEW"
-run git tag -a "v$NEW" -m "v$NEW: $MESSAGE"
-# The tag push is what starts the release workflow, so it goes last: if the
-# branch push failed, no build is triggered against code nobody can fetch.
+if [ "$DRY_RUN" = "0" ]; then
+  git tag -a "v$NEW" -m "v$NEW: $MESSAGE" "$MERGE_SHA"
+else
+  info "[dry-run] git tag -a v$NEW <merge commit>"
+fi
 run git push origin "v$NEW"
 
 # ------------------------------------------------------------ watch
 
 step "Release workflow"
-if command -v gh > /dev/null 2>&1 && [ "$DRY_RUN" = "0" ]; then
-  info "waiting for the run to appear..."
-  sleep 8
-  RUN_ID=$(gh run list --workflow release.yml --limit 1 --json databaseId \
-             --jq '.[0].databaseId' 2>/dev/null || true)
+if [ "$DRY_RUN" = "0" ]; then
+  RUN_ID=""
+  # Filtering by the tag matters now that CI also runs on every pull request:
+  # `--limit 1` on its own can hand back somebody else's run.
+  for _ in $(seq 1 24); do
+    RUN_ID=$(gh run list --workflow release.yml --branch "v$NEW" --limit 1 \
+               --json databaseId --jq '.[0].databaseId' 2>/dev/null || true)
+    [ -n "$RUN_ID" ] && break
+    sleep 5
+  done
   if [ -n "$RUN_ID" ]; then
     info "watching run $RUN_ID"
     gh run watch "$RUN_ID" --exit-status || die "the release workflow failed.
-Inspect it with: gh run view $RUN_ID --log-failed"
+Inspect it with: gh run view $RUN_ID --log-failed
+The tag v$NEW is immutable; re-run against a higher version once fixed."
     printf '%s\n' "${GREEN}Release v$NEW published.${RESET}"
     gh release view "v$NEW" --json assets --jq '.assets[].name' 2>/dev/null || true
   else
