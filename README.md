@@ -14,6 +14,16 @@ engines — ChatGPT, Claude, Perplexity, Gemini, Google AI Overviews.
 48 skills, 23 subagents, and one static binary that does the actual work. No
 Python, no virtualenv, no `pip install`.
 
+## Contents
+
+- [Install](#install)
+- [Using the skills](#using-the-skills)
+- [What works without any setup](#what-works-without-any-setup)
+- [Behind a restrictive network?](#behind-a-restrictive-network)
+- [Uninstall](#uninstall)
+- [Prior art](#prior-art)
+- [Links](#links)
+
 ---
 
 ## Install
@@ -64,10 +74,10 @@ npx skills add asale-ai/seo-geo-skill --all
 clawhub install @asale-ai/seo-geo-skill
 ```
 
-**From source:**
+**With cargo** (Rust 1.82+):
 
 ```bash
-cargo install --git https://github.com/asale-ai/seo-geo-skill
+cargo install seogeo             # or --git https://github.com/asale-ai/seo-geo-skill for main
 seogeo install --target npx      # or --target all
 ```
 
