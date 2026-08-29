@@ -197,3 +197,69 @@ jobs:
           "$BIN" --version
           "$BIN" commands --json | head -5
           "$BIN" install --list
+
+  # npm is published here over OIDC (npm trusted publishing), so no npm token
+  # exists anywhere: not in a repository secret, not in a maintainer's .env.
+  # The trusted publisher is configured on the package's /access page and names
+  # this repository and this workflow file by name — renaming either one stops
+  # publishing until the npm side is updated to match.
+  npm:
+    name: Publish to npm
+    # After `verify`, not merely after `release`: the package's postinstall
+    # downloads the release asset for its own version, so publishing it before
+    # those assets are known to be downloadable and runnable would ship a
+    # version that cannot install itself.
+    needs: verify
+    # workflow_dispatch re-runs the binary build for a tag that already exists;
+    # it must not republish npm. publish.sh knows this job can be skipped, and a
+    # skipped job does not fail the run — so it confirms against the registry
+    # rather than trusting a green workflow.
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: read
+      # Not an extra permission — this is the publishing credential itself. npm
+      # exchanges the OIDC token GitHub mints here for a short-lived publish
+      # token, which is why no secret appears in this job.
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+
+      # Deliberately no `registry-url`: setup-node would write an .npmrc line
+      # referencing NODE_AUTH_TOKEN, which does not exist on the OIDC path, and
+      # npm would then authenticate with an empty string instead of the token.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      # Trusted publishing needs npm >= 11.5.1. An older npm fails with a plain
+      # "need auth" that never mentions its own version, so this step is
+      # load-bearing rather than hygiene.
+      - name: Use an npm that can do trusted publishing
+        run: npm install -g npm@latest
+
+      - name: Check the tag matches package.json
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME#v}"
+          pkg=$(node -p "require('./npm/package.json').version")
+          [ "$tag" = "$pkg" ] || {
+            echo "::error::tag v$tag but npm/package.json says $pkg"
+            exit 1
+          }
+
+      - name: Publish
+        run: |
+          set -euo pipefail
+          version="${GITHUB_REF_NAME#v}"
+          name=$(node -p "require('./npm/package.json').name")
+          # Ask npm itself. A mirror answers "no such version" about a registry
+          # nobody publishes to.
+          if npm view "$name@$version" version \
+               --registry https://registry.npmjs.org/ > /dev/null 2>&1; then
+            echo "$name@$version is already on npm — nothing to do"
+            exit 0
+          fi
+          # --provenance is passed explicitly. The docs say trusted publishing
+          # implies it; in practice the publish fails without the flag.
+          cd npm && npm publish --provenance

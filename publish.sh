@@ -11,11 +11,20 @@
 #   ./publish.sh --version 1.0.0 "first stable release"
 #   ./publish.sh --clawhub "publish skills to ClawHub too"
 #   ./publish.sh --no-npm "GitHub release only, skip the npm package"
+#   ./publish.sh --local-npm "publish npm from here instead of from CI"
 #
 # The npm package @asale/seogeo carries no binary of its own: it downloads the
 # GitHub release asset on install. So npm is published last, after the release
 # workflow has actually produced the assets — publishing it earlier would leave
 # a window where `npx @asale/seogeo` resolves to a version it cannot download.
+#
+# npm is not published from here. The release workflow does it over OIDC (npm
+# trusted publishing), so no npm token exists on this machine or in a
+# repository secret. What is left here is confirmation: waiting until the
+# registry can actually answer for the new version. A green workflow is not
+# evidence on its own — the npm job is skipped on a workflow_dispatch run, and
+# a skipped job does not fail the run. --local-npm publishes from this machine
+# instead, for the case where the workflow could not.
 #
 # main is protected by a ruleset that nobody can bypass, so the direct push
 # this script used to do is rejected by the server. Everything still runs
@@ -33,12 +42,16 @@ EXPLICIT_VERSION=""
 DRY_RUN=0
 WITH_CLAWHUB=0
 WITH_NPM=1
+LOCAL_NPM=0
 SKIP_TESTS=0
 MESSAGE=""
 NPM_PKG_DIR="npm"
-# NPM_TOKEN is deliberately not initialised here: it may already be exported in
-# the environment, and clearing it first would hide that from the preflight.
-TMP_NPMRC=""
+# Named on every npm command that reaches a registry. This machine has a mirror
+# configured (registry.npmmirror.com), and a mirror is a read-only cache: left
+# implicit, `npm view` answers "no such version" about a registry nobody
+# publishes to, and `npm publish` pushes somewhere nobody installs from.
+NPM_REGISTRY="https://registry.npmjs.org/"
+NPM_WAIT_TIMEOUT=900    # seconds to wait for the workflow's npm job (15 minutes)
 
 BOLD=$(tput bold 2>/dev/null || printf '')
 RED=$(tput setaf 1 2>/dev/null || printf '')
@@ -52,7 +65,7 @@ warn() { printf '%swarning:%s %s\n' "$YELLOW" "$RESET" "$*" >&2; }
 die()  { printf '%serror:%s %s\n' "$RED" "$RESET" "$*" >&2; exit 1; }
 
 usage() {
-  sed -n '3,19p' "$0" | sed 's/^# \{0,1\}//'
+  sed -n '3,/^$/p' "$0" | sed 's/^# \{0,1\}//'
   cat <<'EOF'
 
 Flags:
@@ -60,6 +73,9 @@ Flags:
   --version X.Y.Z               Set an exact version instead of bumping
   --clawhub                     Also publish the skills to ClawHub
   --no-npm                      Skip publishing @asale/seogeo to npm
+  --local-npm                   Publish npm from this machine instead of
+                                waiting for CI. Needs a terminal: npm asks
+                                for a 2FA code.
   --skip-tests                  Skip the local cargo test (CI still gates the PR)
   --dry-run                     Print what would happen; change nothing
   -h, --help                    This text
@@ -74,6 +90,7 @@ while [ $# -gt 0 ]; do
     --version) EXPLICIT_VERSION="${2:?--version needs X.Y.Z}"; shift 2 ;;
     --clawhub) WITH_CLAWHUB=1; shift ;;
     --no-npm) WITH_NPM=0; shift ;;
+    --local-npm) LOCAL_NPM=1; shift ;;
     --skip-tests) SKIP_TESTS=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -85,12 +102,6 @@ done
 [ -n "$MESSAGE" ] || { usage; die "a commit message is required"; }
 
 cd "$(dirname "$0")"
-
-# The npm token is written to a throwaway config rather than ~/.npmrc, so a
-# failed run never leaves a credential behind in a file the user did not
-# create.
-cleanup() { [ -n "$TMP_NPMRC" ] && rm -f "$TMP_NPMRC"; }
-trap cleanup EXIT INT TERM
 
 run() {
   if [ "$DRY_RUN" = "1" ]; then
@@ -116,15 +127,20 @@ git remote get-url origin > /dev/null 2>&1 || die "no 'origin' remote configured
 if [ "$WITH_NPM" = "1" ]; then
   command -v npm > /dev/null || die "npm is not installed (needed for @asale/seogeo; --no-npm to skip)"
   [ -f "$NPM_PKG_DIR/package.json" ] || die "$NPM_PKG_DIR/package.json is missing"
-  # Read the token now, not at publish time: discovering it is absent after the
-  # release has been tagged means an npm version that can never be published
-  # against an immutable tag.
-  NPM_TOKEN="${NPM_TOKEN:-}"
-  if [ -z "$NPM_TOKEN" ] && [ -f .env ]; then
-    NPM_TOKEN=$(grep -m1 '^NPM_TOKEN=' .env | cut -d= -f2- | tr -d '"\r' | tr -d "'" | xargs)
+  if [ "$LOCAL_NPM" = "1" ]; then
+    # npm's 2FA prompt would land at the very end of the run, with the pull
+    # request merged and the tag already pushed. Discovering then that there is
+    # no terminal to answer it is the worst possible moment, so check here.
+    [ -t 0 ] || die "--local-npm publishes interactively and npm asks for a second
+factor, but stdin is not a terminal. Run it from a terminal, or drop --local-npm
+and let the release workflow publish."
+    NPM_WHOAMI=$(npm whoami --registry "$NPM_REGISTRY" 2> /dev/null || true)
+    [ -n "$NPM_WHOAMI" ] || die "--local-npm needs an npm login. Run:
+    npm login --registry $NPM_REGISTRY"
+    info "npm: @asale/seogeo as $NPM_WHOAMI (--local-npm: publishing from here)"
+  else
+    info "npm: @asale/seogeo, published by the release workflow over OIDC"
   fi
-  [ -n "$NPM_TOKEN" ] || die "NPM_TOKEN is not set (in the environment or .env); --no-npm to skip"
-  info "npm: @asale/seogeo, token found"
 fi
 
 START_BRANCH=$(git rev-parse --abbrev-ref HEAD)
@@ -369,9 +385,13 @@ fi
 # ---------------------------------------------------------------- npm
 
 if [ "$WITH_NPM" = "1" ]; then
-  step "Publishing @asale/seogeo@$NEW to npm"
   if [ "$DRY_RUN" = "1" ]; then
-    info "[dry-run] npm publish --access public (from $NPM_PKG_DIR)"
+    step "npm"
+    if [ "$LOCAL_NPM" = "1" ]; then
+      info "[dry-run] npm publish --registry $NPM_REGISTRY (from $NPM_PKG_DIR)"
+    else
+      info "[dry-run] wait for the release workflow to publish @asale/seogeo@$NEW"
+    fi
   else
     PKG_NAME=$(grep -m1 '"name"' "$NPM_PKG_DIR/package.json" | sed 's/.*"name": "\(.*\)".*/\1/')
     PKG_VERSION=$(grep -m1 '"version"' "$NPM_PKG_DIR/package.json" | sed 's/.*"version": "\(.*\)".*/\1/')
@@ -380,27 +400,46 @@ if [ "$WITH_NPM" = "1" ]; then
     [ "$PKG_VERSION" = "$NEW" ] \
       || die "$NPM_PKG_DIR/package.json reads $PKG_VERSION, not $NEW. Nothing was published to npm."
 
-    if npm view "$PKG_NAME@$NEW" version > /dev/null 2>&1; then
-      # npm versions are immutable too. Re-running the script after a partial
-      # failure must not abort a release that otherwise succeeded.
-      warn "$PKG_NAME@$NEW is already on npm; skipping"
-    else
-      TMP_NPMRC=$(mktemp)
-      chmod 600 "$TMP_NPMRC"
-      printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" > "$TMP_NPMRC"
-      if ( cd "$NPM_PKG_DIR" && npm_config_userconfig="$TMP_NPMRC" npm publish --access public ); then
-        info "https://www.npmjs.com/package/$PKG_NAME/v/$NEW"
-      else
-        rm -f "$TMP_NPMRC"; TMP_NPMRC=""
-        die "npm publish failed. The GitHub release v$NEW is already live; publish
-the package on its own once fixed:
-    cd $NPM_PKG_DIR && npm publish --access public
+    # `access: public` lives in package.json's publishConfig rather than on this
+    # command line, so a by-hand publish cannot forget it and quietly ship a
+    # restricted package that every `npx` 404s on.
+    NPM_RECOVERY="( cd $NPM_PKG_DIR && npm publish --registry $NPM_REGISTRY )"
 
-If the error was EOTP, NPM_TOKEN is not an Automation token. Only that type
-bypasses the one-time password, which is what an unattended release needs:
-npmjs.com -> Access Tokens -> Generate New Token -> Classic -> Automation."
+    if [ "$LOCAL_NPM" = "1" ]; then
+      step "Publishing $PKG_NAME@$NEW to npm from this machine"
+      if npm view "$PKG_NAME@$NEW" version --registry "$NPM_REGISTRY" > /dev/null 2>&1; then
+        # npm versions are immutable too. Re-running the script after a partial
+        # failure must not abort a release that otherwise succeeded.
+        warn "$PKG_NAME@$NEW is already on npm; skipping"
+      else
+        info "npm will ask for your second factor."
+        ( cd "$NPM_PKG_DIR" && npm publish --registry "$NPM_REGISTRY" ) \
+          || die "npm publish failed. The GitHub release v$NEW is already live;
+publish the package on its own once fixed:
+    $NPM_RECOVERY"
+        info "https://www.npmjs.com/package/$PKG_NAME/v/$NEW"
       fi
-      rm -f "$TMP_NPMRC"; TMP_NPMRC=""
+    else
+      step "Confirming $PKG_NAME@$NEW reached npm"
+      info "the release workflow publishes it over OIDC; this waits for the registry."
+      NPM_DEADLINE=$(( $(date +%s) + NPM_WAIT_TIMEOUT ))
+      while :; do
+        if npm view "$PKG_NAME@$NEW" version --registry "$NPM_REGISTRY" > /dev/null 2>&1; then
+          info "https://www.npmjs.com/package/$PKG_NAME/v/$NEW"
+          break
+        fi
+        if [ "$(date +%s)" -ge "$NPM_DEADLINE" ]; then
+          warn "$PKG_NAME@$NEW is not on npm after $((NPM_WAIT_TIMEOUT / 60)) minutes.
+The npm job may have failed, or never run — it is skipped on a workflow_dispatch
+run, and a skipped job does not fail the run:
+    https://github.com/$REPO_SLUG/actions/workflows/release.yml
+Publish it by hand if it did not run:
+    $NPM_RECOVERY
+Everything else in this release already shipped, so npm landing late is safe."
+          break
+        fi
+        sleep 20
+      done
     fi
   fi
 fi

@@ -31,3 +31,7 @@ oauth-token.json
 # Downloaded by the npm wrapper
 npm/vendor/
 npm/*.tgz
+# Nothing writes this any more — npm publishes over OIDC from CI. The line
+# stays because the cost of it is one line, and the cost of committing a
+# credential once is every revocation that follows.
+npm/.npmrc
