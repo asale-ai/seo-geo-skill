@@ -1,0 +1,159 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="910" height="763" viewBox="0 0 910 763" lang="en" role="img" aria-label="terminal recording: seogeo commands, seogeo content-quality README.md, seogeo parse skills/seo-cluster/templates/cluster-map.html, seogeo seo-updates --since 2025-01-01">
+  <style>
+    .t { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", "Noto Sans Mono CJK SC", "Noto Sans Mono CJK JP", "Microsoft YaHei", "Hiragino Sans", "Yu Gothic", monospace; white-space: pre; }
+    svg {
+      --d: 28.630s;
+      --w0: 126.0px;
+      --w1: 268.8px;
+      --w2: 487.2px;
+      --w3: 310.8px;
+      --wlast: 310.8px;
+    }
+    .s0 { animation: s0 var(--d) step-end infinite; }
+    @keyframes s0 { 0%,6.287% { opacity: 0 } 6.287%,27.122% { opacity: 1 } 27.122%,100% { opacity: 0 } }
+    .c0 { animation: c0 var(--d) steps(15, end) infinite; }
+    @keyframes c0 { 0%,6.287% { transform: translateX(0) } 8.645%,100% { transform: translateX(var(--w0)) } }
+    .o0 { animation: o0 var(--d) step-end infinite; }
+    @keyframes o0 { 0%,10.915% { opacity: 0 } 10.915%,100% { opacity: 1 } }
+    .s1 { animation: s1 var(--d) step-end infinite; }
+    @keyframes s1 { 0%,27.122% { opacity: 0 } 27.122%,46.856% { opacity: 1 } 46.856%,100% { opacity: 0 } }
+    .c1 { animation: c1 var(--d) steps(32, end) infinite; }
+    @keyframes c1 { 0%,27.122% { transform: translateX(0) } 32.152%,100% { transform: translateX(var(--w1)) } }
+    .o1 { animation: o1 var(--d) step-end infinite; }
+    @keyframes o1 { 0%,34.422% { opacity: 0 } 34.422%,100% { opacity: 1 } }
+    .s2 { animation: s2 var(--d) step-end infinite; }
+    @keyframes s2 { 0%,46.856% { opacity: 0 } 46.856%,71.516% { opacity: 1 } 71.516%,100% { opacity: 0 } }
+    .c2 { animation: c2 var(--d) steps(58, end) infinite; }
+    @keyframes c2 { 0%,46.856% { transform: translateX(0) } 55.973%,100% { transform: translateX(var(--w2)) } }
+    .o2 { animation: o2 var(--d) step-end infinite; }
+    @keyframes o2 { 0%,58.243% { opacity: 0 } 58.243%,100% { opacity: 1 } }
+    .s3 { animation: s3 var(--d) step-end infinite; }
+    @keyframes s3 { 0%,6.287% { opacity: 1 } 6.287%,71.516% { opacity: 0 } 71.516%,100% { opacity: 1 } }
+    .c3 { animation: c3 var(--d) infinite; }
+    @keyframes c3 {
+      0% { transform: translateX(var(--w3)); animation-timing-function: step-end }
+      71.516% { transform: translateX(0); animation-timing-function: steps(37, end) }
+      77.331%,100% { transform: translateX(var(--w3)) }
+    }
+    .o3 { animation: o3 var(--d) step-end infinite; }
+    @keyframes o3 { 0%,6.287% { opacity: 1 } 6.287%,79.602% { opacity: 0 } 79.602%,100% { opacity: 1 } }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important }
+      .step { opacity: 0 }
+      .last { opacity: 1 }
+      .cover { transform: translateX(var(--wlast)) }
+    }
+  </style>
+  <rect x="0" y="0" width="910" height="763" rx="10.0" fill="#1a1a24"/>
+  <rect x="0.5" y="0.5" width="909" height="762" rx="9.5" fill="none" stroke="#35334a"/>
+  <rect x="0" y="0" width="910" height="34" rx="10.0" fill="#222130"/>
+  <rect x="0" y="17" width="910" height="17" rx="0.0" fill="#222130"/>
+  <circle cx="20" cy="17" r="5" fill="#ff4f6e"/>
+  <circle cx="38" cy="17" r="5" fill="#ffc53d"/>
+  <circle cx="56" cy="17" r="5" fill="#43e5d0"/>
+  <text class="t" x="455" y="22" font-size="12" fill="#8b87a3" text-anchor="middle">seogeo</text>
+  <g class="step s0">
+    <text class="t" x="18" y="66.0" font-size="14" xml:space="preserve"><tspan fill="#ff5fd1">$</tspan><tspan fill="#edebfa"> seogeo commands</tspan></text>
+    <g class="cover c0"><rect x="34.8" y="52.0" width="890.4" height="21.0" fill="#1a1a24"/><rect x="34.8" y="54.0" width="8.4" height="17.0" fill="#ff5fd1" opacity="0.85"/></g>
+    <g class="o0">
+      <text class="t" x="18" y="94.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">59 commands</tspan></text>
+      <text class="t" x="18" y="115.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  url-safety                 seo-technical</tspan></text>
+      <text class="t" x="18" y="136.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  fetch                      seo, seo-page, geo</tspan></text>
+      <text class="t" x="18" y="157.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  parse                      seo-page, seo-audit, geo-audit</tspan></text>
+      <text class="t" x="18" y="178.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  render                     seo-technical, geo-technical</tspan></text>
+      <text class="t" x="18" y="199.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  sitemap-discovery          seo-sitemap</tspan></text>
+      <text class="t" x="18" y="220.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  robots                     seo-technical, geo-crawlers</tspan></text>
+      <text class="t" x="18" y="241.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  llms-txt                   geo-llmstxt, seo-geo</tspan></text>
+      <text class="t" x="18" y="262.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  blocks                     geo-citability</tspan></text>
+      <text class="t" x="18" y="283.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  crawl-sitemap              seo-sitemap, seo-audit</tspan></text>
+      <text class="t" x="18" y="304.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  citability                 geo-citability, seo-geo</tspan></text>
+      <text class="t" x="18" y="325.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  brand-scan                 geo-brand-mentions</tspan></text>
+      <text class="t" x="18" y="346.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  content-quality            seo-content, geo-content</tspan></text>
+      <text class="t" x="18" y="367.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  content-humanize           seo-content</tspan></text>
+      <text class="t" x="18" y="388.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  content-verify             seo-content</tspan></text>
+      <text class="t" x="18" y="409.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  nlp-analyze                seo-content, seo-google</tspan></text>
+      <text class="t" x="18" y="430.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  schema-generate            seo-schema, geo-schema</tspan></text>
+      <text class="t" x="18" y="451.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  schema-validate            seo-schema, geo-schema</tspan></text>
+      <text class="t" x="18" y="472.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  schema-ecommerce           seo-ecommerce</tspan></text>
+      <text class="t" x="18" y="493.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  drift                      seo-drift</tspan></text>
+      <text class="t" x="18" y="514.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  preload-check              seo-technical</tspan></text>
+      <text class="t" x="18" y="535.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  lcp-subparts               seo-technical, seo-google</tspan></text>
+      <text class="t" x="18" y="556.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  parasite-risk              seo-content</tspan></text>
+      <text class="t" x="18" y="577.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  ucp-check                  seo-ecommerce</tspan></text>
+      <text class="t" x="18" y="598.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  gbp-lint                   seo-local</tspan></text>
+      <text class="t" x="18" y="619.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  domain-history             seo-content</tspan></text>
+      <text class="t" x="18" y="640.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  agent-ux                   seo-geo, geo-technical</tspan></text>
+      <text class="t" x="18" y="661.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  hreflang                   seo-hreflang</tspan></text>
+      <text class="t" x="18" y="682.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  images-audit               seo-images</tspan></text>
+      <text class="t" x="18" y="703.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  iptc                       seo-images, seo-image-gen</tspan></text>
+      <text class="t" x="18" y="724.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  google-auth                seo-google</tspan></text>
+      <text class="t" x="18" y="745.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  pagespeed                  seo-technical, seo-google</tspan></text>
+    </g>
+  </g>
+  <g class="step s1">
+    <text class="t" x="18" y="66.0" font-size="14" xml:space="preserve"><tspan fill="#ff5fd1">$</tspan><tspan fill="#edebfa"> seogeo content-quality README.md</tspan></text>
+    <g class="cover c1"><rect x="34.8" y="52.0" width="890.4" height="21.0" fill="#1a1a24"/><rect x="34.8" y="54.0" width="8.4" height="17.0" fill="#ff5fd1" opacity="0.85"/></g>
+    <g class="o1">
+      <text class="t" x="18" y="94.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">Overall quality:       83/100</tspan></text>
+      <text class="t" x="18" y="115.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  Filler score:        0/100 (higher = worse)</tspan></text>
+      <text class="t" x="18" y="136.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  AI-pattern score:    0/100 (higher = worse)</tspan></text>
+      <text class="t" x="18" y="157.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  Information density: 0.39</tspan></text>
+      <text class="t" x="18" y="178.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  Repetition:          10/100 (higher = worse)</tspan></text>
+      <text class="t" x="18" y="199.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  Tokens:              1810 (687 unique)</tspan></text>
+    </g>
+  </g>
+  <g class="step s2">
+    <text class="t" x="18" y="66.0" font-size="14" xml:space="preserve"><tspan fill="#ff5fd1">$</tspan><tspan fill="#edebfa"> seogeo parse skills/seo-cluster/templates/cluster-map.html</tspan></text>
+    <g class="cover c2"><rect x="34.8" y="52.0" width="890.4" height="21.0" fill="#1a1a24"/><rect x="34.8" y="54.0" width="8.4" height="17.0" fill="#ff5fd1" opacity="0.85"/></g>
+    <g class="o2">
+      <text class="t" x="18" y="94.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">Title: Content Cluster Map</tspan></text>
+      <text class="t" x="18" y="115.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">Meta Description: (none)</tspan></text>
+      <text class="t" x="18" y="136.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">Canonical: (none)</tspan></text>
+      <text class="t" x="18" y="157.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">H1 Tags: 1</tspan></text>
+      <text class="t" x="18" y="178.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">H2 Tags: 0</tspan></text>
+      <text class="t" x="18" y="199.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">Images: 0</tspan></text>
+      <text class="t" x="18" y="220.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">Internal Links: 0</tspan></text>
+      <text class="t" x="18" y="241.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">External Links: 0</tspan></text>
+      <text class="t" x="18" y="262.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">Schema Blocks: 0</tspan></text>
+      <text class="t" x="18" y="283.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">Word Count: 47</tspan></text>
+    </g>
+  </g>
+  <g class="step s3 last">
+    <text class="t" x="18" y="66.0" font-size="14" xml:space="preserve"><tspan fill="#ff5fd1">$</tspan><tspan fill="#edebfa"> seogeo seo-updates --since 2025-01-01</tspan></text>
+    <g class="cover c3"><rect x="34.8" y="52.0" width="890.4" height="21.0" fill="#1a1a24"/><rect x="34.8" y="54.0" width="8.4" height="17.0" fill="#ff5fd1" opacity="0.85"/></g>
+    <g class="o3">
+      <text class="t" x="18" y="94.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">Google ranking updates (23 entries, verified 2026-07-02)</tspan></text>
+      <text class="t" x="18" y="115.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2025-01-23  [qrg] QRG update (Jan 2025)</tspan></text>
+      <text class="t" x="18" y="136.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      Adds formal definition of generative AI (§2.1). Defines scaled content abuse, expired-domain abus…</tspan></text>
+      <text class="t" x="18" y="157.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2025-03-05  [product] AI Mode experimental launch</tspan></text>
+      <text class="t" x="18" y="178.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      Initially Google One AI Premium / Labs (US). Gemini 2.0 backend. Query fan-out technique.</tspan></text>
+      <text class="t" x="18" y="199.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2025-03-13  [core] March 2025 Core Update</tspan></text>
+      <text class="t" x="18" y="220.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      14-day rollout.</tspan></text>
+      <text class="t" x="18" y="241.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2025-05-20  [product] AI Mode general rollout (US)</tspan></text>
+      <text class="t" x="18" y="262.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      No Labs sign-up required. Gemini 2.5 in AI Mode and AI Overviews.</tspan></text>
+      <text class="t" x="18" y="283.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2025-06-12  [schema] Structured data deprecation</tspan></text>
+      <text class="t" x="18" y="304.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      Phased out: Course Info, Claim Review, Estimated Salary, Learning Video, Special Announcement (ca…</tspan></text>
+      <text class="t" x="18" y="325.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2025-06-30  [core] June 2025 Core Update</tspan></text>
+      <text class="t" x="18" y="346.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      16-day rollout. Some Sep 2023 HCU partial recoveries.</tspan></text>
+      <text class="t" x="18" y="367.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2025-08-21  [product] AI Mode expands to 180+ countries</tspan></text>
+      <text class="t" x="18" y="388.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      English first. Robby Stein: &apos;active&apos; AI Mode begins with dining reservations.</tspan></text>
+      <text class="t" x="18" y="409.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2025-09-11  [qrg] QRG update (Sept 2025)</tspan></text>
+      <text class="t" x="18" y="430.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      Adds AI Overview rating examples. Expands YMYL to include political/social topics. Google: &apos;no ch…</tspan></text>
+      <text class="t" x="18" y="451.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2025-12-11  [core] December 2025 Core Update</tspan></text>
+      <text class="t" x="18" y="472.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      18-day rollout. Third core update of 2025. Reported eCommerce skew per Amsive analysis.</tspan></text>
+      <text class="t" x="18" y="493.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2026-02-05  [discover] February 2026 Discover Update</tspan></text>
+      <text class="t" x="18" y="514.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      Official dashboard name: February 2026 Discover update (started Feb 5, ~21d rollout, English/US f…</tspan></text>
+      <text class="t" x="18" y="535.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2026-03-24  [spam] March 2026 Spam Update</tspan></text>
+      <text class="t" x="18" y="556.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      Fastest spam update on record — 19h30m rollout (completed under a day), days before the March 202…</tspan></text>
+      <text class="t" x="18" y="577.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2026-03-27  [core] March 2026 Core Update</tspan></text>
+      <text class="t" x="18" y="598.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      Started Mar 27, completed Apr 8 (12-day rollout). First web-Search core update of 2026.</tspan></text>
+      <text class="t" x="18" y="619.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2026-04-13  [policy] Back button hijacking spam policy</tspan></text>
+      <text class="t" x="18" y="640.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      New &apos;malicious practices&apos; spam policy: manipulating browser history to defeat the Back button (in…</tspan></text>
+      <text class="t" x="18" y="661.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2026-05-07  [schema] FAQ rich results retired</tspan></text>
+      <text class="t" x="18" y="682.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      FAQ rich results no longer shown for any site (supersedes the Aug 2023 gov/health restriction). R…</tspan></text>
+      <text class="t" x="18" y="703.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2026-05-15  [policy] Spam policies update (gen-AI scaled content)</tspan></text>
+      <text class="t" x="18" y="724.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">      Scaled content abuse now explicitly names &apos;using generative AI tools to generate many pages witho…</tspan></text>
+      <text class="t" x="18" y="745.0" font-size="14" xml:space="preserve"><tspan fill="#edebfa">  2026-06-29  [product] Generative AI optimization guide</tspan></text>
+    </g>
+  </g>
+</svg>

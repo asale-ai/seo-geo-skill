@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "repolish": {
+      "source": "asale-ai/repolish",
+      "sourceType": "github",
+      "skillPath": "skills/repolish/SKILL.md",
+      "computedHash": "0d88b5ca133994edb0ece6c5aa37dc1c178235819dac5cf0068e6be335aa2028"
+    }
+  }
+}

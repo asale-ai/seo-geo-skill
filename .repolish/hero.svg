@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="260" viewBox="0 0 1200 260" lang="en" role="img" aria-label="seogeo">
+  <defs>
+    <linearGradient id="brand" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7d56f4"/>
+      <stop offset="0.55" stop-color="#ff5fd1"/>
+      <stop offset="1" stop-color="#43e5d0"/>
+    </linearGradient>
+  </defs>
+  <style>
+    .t { font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", "Noto Sans Mono CJK SC", "Noto Sans Mono CJK JP", "Microsoft YaHei", "Hiragino Sans", "Yu Gothic", monospace; }
+  </style>
+  <rect x="408" y="62" width="76" height="76" rx="19.8" fill="url(#brand)"/>
+  <path d="M441.4 78.7Q446.6 99.4 467.3 104.6Q446.6 109.7 441.4 130.4Q436.3 109.7 415.6 104.6Q436.3 99.4 441.4 78.7Z" fill="#1a1a24"/>
+  <path d="M465.8 69.6Q468.2 79.3 477.9 81.8Q468.2 84.2 465.8 93.9Q463.3 84.2 453.6 81.8Q463.3 79.3 465.8 69.6Z" fill="#1a1a24"/>
+  <g fill="#7d56f4"><rect x="512" y="80" width="8" height="8" rx="1"/><rect x="512" y="88" width="8" height="8" rx="1"/><rect x="512" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#8557f2"><rect x="520" y="72" width="8" height="8" rx="1"/><rect x="520" y="96" width="8" height="8" rx="1"/><rect x="520" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#8c57f0"><rect x="528" y="72" width="8" height="8" rx="1"/><rect x="528" y="96" width="8" height="8" rx="1"/><rect x="528" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#9458ee"><rect x="536" y="72" width="8" height="8" rx="1"/><rect x="536" y="96" width="8" height="8" rx="1"/><rect x="536" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#9c58ec"><rect x="544" y="72" width="8" height="8" rx="1"/><rect x="544" y="104" width="8" height="8" rx="1"/><rect x="544" y="112" width="8" height="8" rx="1"/></g>
+  <g fill="#ab59e8"><rect x="560" y="72" width="8" height="8" rx="1"/><rect x="560" y="80" width="8" height="8" rx="1"/><rect x="560" y="88" width="8" height="8" rx="1"/><rect x="560" y="96" width="8" height="8" rx="1"/><rect x="560" y="104" width="8" height="8" rx="1"/><rect x="560" y="112" width="8" height="8" rx="1"/><rect x="560" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#b35ae6"><rect x="568" y="72" width="8" height="8" rx="1"/><rect x="568" y="96" width="8" height="8" rx="1"/><rect x="568" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#ba5ae4"><rect x="576" y="72" width="8" height="8" rx="1"/><rect x="576" y="96" width="8" height="8" rx="1"/><rect x="576" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#c25be1"><rect x="584" y="72" width="8" height="8" rx="1"/><rect x="584" y="96" width="8" height="8" rx="1"/><rect x="584" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#c95bdf"><rect x="592" y="72" width="8" height="8" rx="1"/><rect x="592" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#d95cdb"><rect x="608" y="80" width="8" height="8" rx="1"/><rect x="608" y="88" width="8" height="8" rx="1"/><rect x="608" y="96" width="8" height="8" rx="1"/><rect x="608" y="104" width="8" height="8" rx="1"/><rect x="608" y="112" width="8" height="8" rx="1"/></g>
+  <g fill="#e05dd9"><rect x="616" y="72" width="8" height="8" rx="1"/><rect x="616" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#e85dd7"><rect x="624" y="72" width="8" height="8" rx="1"/><rect x="624" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#f05ed5"><rect x="632" y="72" width="8" height="8" rx="1"/><rect x="632" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#f75ed3"><rect x="640" y="80" width="8" height="8" rx="1"/><rect x="640" y="88" width="8" height="8" rx="1"/><rect x="640" y="96" width="8" height="8" rx="1"/><rect x="640" y="104" width="8" height="8" rx="1"/><rect x="640" y="112" width="8" height="8" rx="1"/></g>
+  <g fill="#f467d1"><rect x="656" y="80" width="8" height="8" rx="1"/><rect x="656" y="88" width="8" height="8" rx="1"/><rect x="656" y="96" width="8" height="8" rx="1"/><rect x="656" y="104" width="8" height="8" rx="1"/><rect x="656" y="112" width="8" height="8" rx="1"/></g>
+  <g fill="#e96fd1"><rect x="664" y="72" width="8" height="8" rx="1"/><rect x="664" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#de77d1"><rect x="672" y="72" width="8" height="8" rx="1"/><rect x="672" y="96" width="8" height="8" rx="1"/><rect x="672" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#d37fd1"><rect x="680" y="72" width="8" height="8" rx="1"/><rect x="680" y="96" width="8" height="8" rx="1"/><rect x="680" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#c886d1"><rect x="688" y="80" width="8" height="8" rx="1"/><rect x="688" y="96" width="8" height="8" rx="1"/><rect x="688" y="104" width="8" height="8" rx="1"/><rect x="688" y="112" width="8" height="8" rx="1"/><rect x="688" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#b296d1"><rect x="704" y="72" width="8" height="8" rx="1"/><rect x="704" y="80" width="8" height="8" rx="1"/><rect x="704" y="88" width="8" height="8" rx="1"/><rect x="704" y="96" width="8" height="8" rx="1"/><rect x="704" y="104" width="8" height="8" rx="1"/><rect x="704" y="112" width="8" height="8" rx="1"/><rect x="704" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#a79ed1"><rect x="712" y="72" width="8" height="8" rx="1"/><rect x="712" y="96" width="8" height="8" rx="1"/><rect x="712" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#9ba6d0"><rect x="720" y="72" width="8" height="8" rx="1"/><rect x="720" y="96" width="8" height="8" rx="1"/><rect x="720" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#90aed0"><rect x="728" y="72" width="8" height="8" rx="1"/><rect x="728" y="96" width="8" height="8" rx="1"/><rect x="728" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#85b6d0"><rect x="736" y="72" width="8" height="8" rx="1"/><rect x="736" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#6fc5d0"><rect x="752" y="80" width="8" height="8" rx="1"/><rect x="752" y="88" width="8" height="8" rx="1"/><rect x="752" y="96" width="8" height="8" rx="1"/><rect x="752" y="104" width="8" height="8" rx="1"/><rect x="752" y="112" width="8" height="8" rx="1"/></g>
+  <g fill="#64cdd0"><rect x="760" y="72" width="8" height="8" rx="1"/><rect x="760" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#59d5d0"><rect x="768" y="72" width="8" height="8" rx="1"/><rect x="768" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#4eddd0"><rect x="776" y="72" width="8" height="8" rx="1"/><rect x="776" y="120" width="8" height="8" rx="1"/></g>
+  <g fill="#43e5d0"><rect x="784" y="80" width="8" height="8" rx="1"/><rect x="784" y="88" width="8" height="8" rx="1"/><rect x="784" y="96" width="8" height="8" rx="1"/><rect x="784" y="104" width="8" height="8" rx="1"/><rect x="784" y="112" width="8" height="8" rx="1"/></g>
+  <text class="t" x="600" y="184" font-size="19" fill="#8b87a3" text-anchor="middle">Agent skills that audit a website for classic search and for AI answer engines — ChatGPT, Cla…</text>
+</svg>
