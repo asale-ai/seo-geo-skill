@@ -11,6 +11,7 @@ mod cli;
 mod cmd;
 mod html;
 mod http;
+mod llm;
 mod output;
 mod paths;
 mod safety;

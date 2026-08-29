@@ -145,6 +145,31 @@ missing.
 
 ---
 
+## Using it from a host that does not read skills
+
+The skills reach agents that load `SKILL.md` files. Everything else — Cursor,
+Windsurf, Claude Desktop, n8n, a custom agent — reaches the same checks over
+MCP, from the same binary:
+
+```bash
+seogeo mcp
+```
+
+It speaks JSON-RPC on stdio and exposes the audit, crawl, visibility, and log
+tools. Register it the way that host registers any stdio MCP server; the
+command is `seogeo` with the single argument `mcp` and no environment beyond
+whatever API keys the user already set.
+
+Two things worth telling the user:
+
+- The tool list is deliberately short. Each tool is a whole check that returns a finished report, not an API endpoint to be assembled — a model choosing between 14 outcomes picks better than one choosing between 160 primitives.
+- Answer-engine tools still need the user's own keys. `ai_ask` and `ai_visibility_run` return a readable error naming the missing variable rather than failing silently.
+
+Prefer the skills where both are available: a skill carries the judgement about
+what to do with the numbers, and the MCP tool only carries the numbers.
+
+---
+
 ## Updating later
 
 ```bash

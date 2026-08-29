@@ -4,14 +4,21 @@ pub mod backlinks;
 pub mod checks;
 pub mod content;
 pub mod core;
+pub mod crawl;
 pub mod crm;
 pub mod dataforseo;
 pub mod drift;
 pub mod geo;
 pub mod google;
 pub mod install;
+pub mod logs;
+pub mod mcp;
 pub mod misc;
+pub mod report;
 pub mod schema;
+pub mod validate;
+pub mod visibility;
+pub mod watch;
 
 use std::process::ExitCode;
 
@@ -79,6 +86,111 @@ pub fn dispatch(cli: Cli) -> CmdResult<ExitCode> {
             domain,
             json,
         } => geo::brand_scan(&brand, domain.as_deref(), json),
+
+        // answer-engine probing
+        Ask {
+            prompt,
+            provider,
+            model,
+            brand,
+            timeout,
+            json,
+        } => visibility::ask(
+            &prompt,
+            provider.as_deref(),
+            model.as_deref(),
+            brand.as_deref(),
+            timeout,
+            json,
+        ),
+        Visibility { action } => visibility::run_action(action),
+        CitabilityValidate {
+            domain,
+            prompts,
+            prompt,
+            provider,
+            max_pages,
+            concurrency,
+            timeout,
+            json,
+        } => validate::run(
+            &domain,
+            prompts.as_deref(),
+            &prompt,
+            provider.as_deref(),
+            max_pages,
+            concurrency,
+            timeout,
+            json,
+        ),
+
+        // crawl
+        Crawl {
+            url,
+            max_pages,
+            max_depth,
+            concurrency,
+            include_subdomains,
+            ignore_robots,
+            delay_ms,
+            timeout,
+            json,
+        } => crawl::run(
+            &url,
+            max_pages,
+            max_depth,
+            concurrency,
+            include_subdomains,
+            ignore_robots,
+            delay_ms,
+            timeout,
+            json,
+        ),
+
+        // logs
+        Logs {
+            files,
+            sitemap,
+            since,
+            top,
+            json,
+        } => logs::analyze(
+            &files,
+            sitemap.as_deref(),
+            since.as_deref(),
+            top,
+            true,
+            json,
+        ),
+
+        // reporting and scheduling
+        ReportHtml {
+            inputs,
+            output,
+            title,
+        } => report::html(&inputs, output.as_deref(), title.as_deref()),
+        Watch {
+            brand,
+            domain,
+            prompts,
+            competitors,
+            urls,
+            log_files,
+            out_dir,
+            html,
+            json,
+        } => watch::run(
+            brand.as_deref(),
+            domain.as_deref(),
+            prompts.as_deref(),
+            &competitors,
+            &urls,
+            &log_files,
+            &out_dir,
+            html,
+            json,
+        ),
+        Mcp => mcp::serve(),
 
         // content
         ContentQuality {

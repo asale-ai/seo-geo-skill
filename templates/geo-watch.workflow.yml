@@ -1,0 +1,91 @@
+# Scheduled AI-visibility and crawler-log monitoring — a TEMPLATE.
+#
+# Copy this to `.github/workflows/geo-watch.yml` in the repository of the site
+# you are tracking. It deliberately does not live in this project's own
+# workflows directory, because it is meant to run against your site, not this
+# one.
+#
+# Set the repository variables BRAND_NAME and BRAND_DOMAIN, add whichever
+# answer-engine keys you want as secrets, and commit your prompt set to
+# `.github/geo-prompts.json`. There is no server and no account involved.
+name: GEO watch
+
+on:
+  schedule:
+    # Weekly. Answer-engine output is noisy day to day, so a weekly cadence
+    # produces a readable trend where a daily one produces static.
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install seogeo
+        run: |
+          curl -fsSL https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.sh | sh
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      # The prompt set is the measurement instrument, so it lives in the repo
+      # and changes through review like any other source file.
+      - name: Restore the visibility history
+        uses: actions/cache/restore@v4
+        with:
+          path: ~/.local/share/seogeo
+          key: seogeo-visibility-${{ github.run_id }}
+          restore-keys: seogeo-visibility-
+
+      - name: Run the checks
+        id: watch
+        continue-on-error: true
+        env:
+          PERPLEXITY_API_KEY: ${{ secrets.PERPLEXITY_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          seogeo watch \
+            --brand "${{ vars.BRAND_NAME }}" \
+            --domain "${{ vars.BRAND_DOMAIN }}" \
+            --prompts .github/geo-prompts.json \
+            --html \
+            --out-dir watch-output
+          echo "exit=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Save the visibility history
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.local/share/seogeo
+          key: seogeo-visibility-${{ github.run_id }}
+
+      - name: Upload the report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: geo-report
+          path: watch-output/
+
+      # Exit 2 means a metric fell; exit 1 means a check could not run. Only
+      # the first is worth opening an issue about.
+      - name: Open an issue on a regression
+        if: steps.watch.outputs.exit == '2'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `AI visibility regressed (${new Date().toISOString().slice(0, 10)})`,
+              body: [
+                'A scheduled `seogeo watch` run reported a drop.',
+                '',
+                `The full report is attached to [run ${context.runId}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}) as the \`geo-report\` artifact.`,
+                '',
+                'Before acting: rerun once. Answer engines are non-deterministic and a single run moves several points on its own — two runs agreeing is the minimum evidence that something really changed.',
+              ].join('\n'),
+            })
