@@ -31,8 +31,11 @@ If `seogeo` is not found, the toolkit is not installed. Point the user at
 the install command rather than trying to repair the installation:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.sh | sh
+npx -y @asale/seogeo --version
 ```
+
+The `seo-geo-skill` skill walks a first install properly, including the
+no-Node route.
 
 ---
 
@@ -50,19 +53,30 @@ current and stop — do not reinstall for no reason.
 
 ## Step 3 — Upgrade the binary
 
-The install script is idempotent and replaces the binary in place:
+Upgrade by the same route the user installed by. Both are idempotent and
+replace the binary in place.
+
+Installed from npm:
+
+```bash
+npm install -g @asale/seogeo@latest
+```
+
+`npx -y @asale/seogeo@latest` runs the newest release without installing
+anything, which is the quicker check when the user only wants the new version
+once.
+
+Installed from the shell script:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.sh | sh
 ```
 
-On Windows PowerShell:
-
 ```powershell
 irm https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.ps1 | iex
 ```
 
-The script verifies the release checksum before installing. If verification
+Every route verifies the release checksum before installing. If verification
 fails it aborts without touching the existing binary — report the failure
 verbatim and stop.
 

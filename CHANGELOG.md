@@ -10,6 +10,24 @@ running a downloaded binary.
 
 ## [Unreleased]
 
+### Added
+
+- **npm distribution.** `npx -y @asale/seogeo` installs and runs the binary on every supported
+  platform. The package carries no binary of its own: it downloads the GitHub release asset for
+  the machine's platform and verifies it against the published `SHA256SUMS`, so the npm version
+  and the release tag are always the same number. `publish.sh` keeps `npm/package.json` in step
+  with `Cargo.toml` and publishes to npm after the release workflow has produced the assets.
+
+### Changed
+
+- README and the install-bearing skills lead with `npx` rather than the shell installer; the
+  shell route still works and stays documented for machines without Node.
+
+### Fixed
+
+- `publish.sh` no longer aborts before tagging when `gh pr merge --delete-branch` has already
+  removed the release branch. This is what stopped v0.2.0 from being tagged automatically.
+
 ## [0.2.0] - 2026-08-29
 
 ### Added

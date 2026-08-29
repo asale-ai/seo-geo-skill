@@ -1,0 +1,41 @@
+{
+  "name": "@asale/seogeo",
+  "version": "0.2.0",
+  "description": "Single-binary execution engine for the SEO + GEO agent skills — audit a site for classic search and for the answer engines, measure whether ChatGPT and Perplexity actually mention you, and read your own crawler logs.",
+  "keywords": [
+    "seo",
+    "geo",
+    "aeo",
+    "ai-search",
+    "llm-seo",
+    "answer-engine-optimization",
+    "agent-skills",
+    "mcp",
+    "cli"
+  ],
+  "homepage": "https://github.com/asale-ai/seo-geo-skill#readme",
+  "bugs": "https://github.com/asale-ai/seo-geo-skill/issues",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/asale-ai/seo-geo-skill.git",
+    "directory": "npm"
+  },
+  "license": "MIT",
+  "bin": {
+    "seogeo": "bin/seogeo.js"
+  },
+  "files": [
+    "bin/",
+    "lib/",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node lib/install.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

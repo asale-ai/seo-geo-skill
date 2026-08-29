@@ -27,3 +27,7 @@ oauth-token.json
 
 # Local agent-tool state, not part of the distribution
 /.claude/
+
+# Downloaded by the npm wrapper
+npm/vendor/
+npm/*.tgz
