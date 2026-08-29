@@ -36,7 +36,8 @@ WITH_NPM=1
 SKIP_TESTS=0
 MESSAGE=""
 NPM_PKG_DIR="npm"
-NPM_TOKEN=""
+# NPM_TOKEN is deliberately not initialised here: it may already be exported in
+# the environment, and clearing it first would hide that from the preflight.
 TMP_NPMRC=""
 
 BOLD=$(tput bold 2>/dev/null || printf '')
@@ -118,11 +119,11 @@ if [ "$WITH_NPM" = "1" ]; then
   # Read the token now, not at publish time: discovering it is absent after the
   # release has been tagged means an npm version that can never be published
   # against an immutable tag.
-  NPM_TOKEN="${NPM_ACCESS_TOKEN:-}"
+  NPM_TOKEN="${NPM_TOKEN:-}"
   if [ -z "$NPM_TOKEN" ] && [ -f .env ]; then
-    NPM_TOKEN=$(grep -m1 '^NPM_ACCESS_TOKEN=' .env | cut -d= -f2- | tr -d '"\r' | tr -d "'" | xargs)
+    NPM_TOKEN=$(grep -m1 '^NPM_TOKEN=' .env | cut -d= -f2- | tr -d '"\r' | tr -d "'" | xargs)
   fi
-  [ -n "$NPM_TOKEN" ] || die "NPM_ACCESS_TOKEN is not set (in the environment or .env); --no-npm to skip"
+  [ -n "$NPM_TOKEN" ] || die "NPM_TOKEN is not set (in the environment or .env); --no-npm to skip"
   info "npm: @asale/seogeo, token found"
 fi
 
@@ -393,7 +394,11 @@ if [ "$WITH_NPM" = "1" ]; then
         rm -f "$TMP_NPMRC"; TMP_NPMRC=""
         die "npm publish failed. The GitHub release v$NEW is already live; publish
 the package on its own once fixed:
-    cd $NPM_PKG_DIR && npm publish --access public"
+    cd $NPM_PKG_DIR && npm publish --access public
+
+If the error was EOTP, NPM_TOKEN is not an Automation token. Only that type
+bypasses the one-time password, which is what an unattended release needs:
+npmjs.com -> Access Tokens -> Generate New Token -> Classic -> Automation."
       fi
       rm -f "$TMP_NPMRC"; TMP_NPMRC=""
     fi
