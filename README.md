@@ -32,28 +32,50 @@ actual work. No Python, no virtualenv, no `pip install`.
 
 ## Install
 
-macOS and Linux:
+```bash
+npx -y @asale/seogeo --version
+```
+
+One command, every platform. It downloads the release build for your machine,
+verifies it against the published `SHA256SUMS`, and runs it. The npm version
+and the release tag are the same number, so `@asale/seogeo@0.2.0` can only ever
+fetch `v0.2.0`.
+
+To keep `seogeo` on your PATH instead of going through `npx` each time:
+
+```bash
+npm install -g @asale/seogeo
+```
+
+Then add the agent skills:
+
+```bash
+seogeo install --target npx
+```
+
+That hands the skills to [`npx skills`](https://github.com/vercel-labs/skills),
+which supports **75+ agents**: Claude Code, Codex, Cursor, OpenCode, Cline,
+Copilot, Roo, Windsurf, and the rest. One canonical copy lands in
+`~/.agents/skills` and is symlinked into each agent that is present, pinned to
+the same tag as the binary, so the skills can never be newer or older than the
+code that runs them.
+
+<details>
+<summary>No Node?</summary>
+
+The shell installers do the whole job — binary and skills — and need no npm:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.sh | sh
 ```
 
-Windows PowerShell:
-
 ```powershell
 irm https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.ps1 | iex
 ```
 
-That installs the `seogeo` binary — checksum-verified against the published
-`SHA256SUMS` — and then hands the skills to
-[`npx skills`](https://github.com/vercel-labs/skills), which supports **75+
-agents**: Claude Code, Codex, Cursor, OpenCode, Cline, Copilot, Roo, Windsurf,
-and the rest. One canonical copy lands in `~/.agents/skills` and is symlinked
-into each agent that is present. The install is pinned to the same tag as the
-binary, so the skills can never be newer or older than the code that runs them.
+Without Node they fall back to writing five known agent directories directly.
 
-No Node? The installer falls back to writing five known agent directories
-directly. Nothing here requires npm.
+</details>
 
 Confirm it worked:
 
@@ -83,6 +105,13 @@ clawhub install @asale-ai/seo-geo-skill
 ```bash
 cargo install seogeo             # or --git https://github.com/asale-ai/seo-geo-skill for main
 seogeo install --target npx      # or --target all
+```
+
+**Pin a version** — useful in CI, where a floating `latest` makes a build
+irreproducible:
+
+```bash
+npx -y @asale/seogeo@0.2.0 crawl https://example.com --max-pages 100 --json
 ```
 
 **Pick your own targets:**
@@ -286,7 +315,8 @@ export SEOGEO_PROXY=http://127.0.0.1:7890
 ```bash
 npx skills remove          # if the skills came from npx skills
 rm -rf ~/.claude/skills/{seo,geo}* ~/.claude/agents/{seo,geo}*-*.md
-rm -f ~/.local/bin/seogeo
+npm uninstall -g @asale/seogeo   # if the binary came from npm
+rm -f ~/.local/bin/seogeo        # if it came from the shell installer
 ```
 
 Your data — drift baselines, visibility history, CRM records, cost ledger — lives under

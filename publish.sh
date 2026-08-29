@@ -10,6 +10,12 @@
 #   ./publish.sh --minor "add UCP auditing"
 #   ./publish.sh --version 1.0.0 "first stable release"
 #   ./publish.sh --clawhub "publish skills to ClawHub too"
+#   ./publish.sh --no-npm "GitHub release only, skip the npm package"
+#
+# The npm package @asale/seogeo carries no binary of its own: it downloads the
+# GitHub release asset on install. So npm is published last, after the release
+# workflow has actually produced the assets — publishing it earlier would leave
+# a window where `npx @asale/seogeo` resolves to a version it cannot download.
 #
 # main is protected by a ruleset that nobody can bypass, so the direct push
 # this script used to do is rejected by the server. Everything still runs
@@ -26,8 +32,12 @@ BUMP="patch"
 EXPLICIT_VERSION=""
 DRY_RUN=0
 WITH_CLAWHUB=0
+WITH_NPM=1
 SKIP_TESTS=0
 MESSAGE=""
+NPM_PKG_DIR="npm"
+NPM_TOKEN=""
+TMP_NPMRC=""
 
 BOLD=$(tput bold 2>/dev/null || printf '')
 RED=$(tput setaf 1 2>/dev/null || printf '')
@@ -48,6 +58,7 @@ Flags:
   --patch | --minor | --major   Which component to bump (default: --patch)
   --version X.Y.Z               Set an exact version instead of bumping
   --clawhub                     Also publish the skills to ClawHub
+  --no-npm                      Skip publishing @asale/seogeo to npm
   --skip-tests                  Skip the local cargo test (CI still gates the PR)
   --dry-run                     Print what would happen; change nothing
   -h, --help                    This text
@@ -61,6 +72,7 @@ while [ $# -gt 0 ]; do
     --major) BUMP="major"; shift ;;
     --version) EXPLICIT_VERSION="${2:?--version needs X.Y.Z}"; shift 2 ;;
     --clawhub) WITH_CLAWHUB=1; shift ;;
+    --no-npm) WITH_NPM=0; shift ;;
     --skip-tests) SKIP_TESTS=1; shift ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
@@ -72,6 +84,12 @@ done
 [ -n "$MESSAGE" ] || { usage; die "a commit message is required"; }
 
 cd "$(dirname "$0")"
+
+# The npm token is written to a throwaway config rather than ~/.npmrc, so a
+# failed run never leaves a credential behind in a file the user did not
+# create.
+cleanup() { [ -n "$TMP_NPMRC" ] && rm -f "$TMP_NPMRC"; }
+trap cleanup EXIT INT TERM
 
 run() {
   if [ "$DRY_RUN" = "1" ]; then
@@ -93,6 +111,20 @@ gh auth status > /dev/null 2>&1 || die "gh is not authenticated; run: gh auth lo
 git rev-parse --git-dir > /dev/null 2>&1 || die "not a git repository"
 
 git remote get-url origin > /dev/null 2>&1 || die "no 'origin' remote configured"
+
+if [ "$WITH_NPM" = "1" ]; then
+  command -v npm > /dev/null || die "npm is not installed (needed for @asale/seogeo; --no-npm to skip)"
+  [ -f "$NPM_PKG_DIR/package.json" ] || die "$NPM_PKG_DIR/package.json is missing"
+  # Read the token now, not at publish time: discovering it is absent after the
+  # release has been tagged means an npm version that can never be published
+  # against an immutable tag.
+  NPM_TOKEN="${NPM_ACCESS_TOKEN:-}"
+  if [ -z "$NPM_TOKEN" ] && [ -f .env ]; then
+    NPM_TOKEN=$(grep -m1 '^NPM_ACCESS_TOKEN=' .env | cut -d= -f2- | tr -d '"\r' | tr -d "'" | xargs)
+  fi
+  [ -n "$NPM_TOKEN" ] || die "NPM_ACCESS_TOKEN is not set (in the environment or .env); --no-npm to skip"
+  info "npm: @asale/seogeo, token found"
+fi
 
 START_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 info "starting from: $START_BRANCH"
@@ -177,8 +209,24 @@ if [ "$DRY_RUN" = "0" ]; then
   # Keeps Cargo.lock's own record of the package version in step, so
   # `cargo build --locked` in CI does not fail.
   cargo update --workspace --quiet 2>/dev/null || cargo metadata --quiet > /dev/null 2>&1 || true
+
+  # The npm package's version is not cosmetic: it is the release tag the
+  # postinstall downloads from. It must land in the same commit as Cargo.toml
+  # or `npx @asale/seogeo` fetches the wrong build.
+  if [ -f "$NPM_PKG_DIR/package.json" ]; then
+    # Replace only the value, so the trailing comma and the indentation the
+    # rest of the file uses survive untouched.
+    awk -v new="$NEW" '
+      !done && /^[[:space:]]*"version"[[:space:]]*:/ { sub(/: *"[^"]*"/, ": \"" new "\""); done = 1 }
+      { print }
+    ' "$NPM_PKG_DIR/package.json" > "$NPM_PKG_DIR/package.json.tmp" \
+      && mv "$NPM_PKG_DIR/package.json.tmp" "$NPM_PKG_DIR/package.json"
+    NPM_WROTE=$(grep -m1 '"version"' "$NPM_PKG_DIR/package.json" | sed 's/.*"version": "\(.*\)".*/\1/')
+    [ "$NPM_WROTE" = "$NEW" ] \
+      || die "$NPM_PKG_DIR/package.json still reads $NPM_WROTE after the bump"
+  fi
 fi
-info "Cargo.toml and Cargo.lock updated"
+info "Cargo.toml, Cargo.lock and $NPM_PKG_DIR/package.json updated"
 
 # ------------------------------------------------------------ commit + push
 
@@ -262,7 +310,11 @@ run git fetch origin "$BASE_BRANCH"
 # The squash rewrote history: the commit built locally is not the commit on
 # main. Discarding the local branch is the point, not a side effect.
 run git reset --hard "origin/$BASE_BRANCH"
-run git branch -D "$RELEASE_BRANCH"
+# `gh pr merge --delete-branch` already removed this, locally and on origin, so
+# a plain `git branch -D` exits non-zero and `set -e` kills the run before the
+# tag is pushed. That is what happened to v0.2.0, which had to be tagged by
+# hand. Tidying up a branch that is already gone is a success, not a failure.
+run git branch -D "$RELEASE_BRANCH" 2> /dev/null || true
 
 # ------------------------------------------------------------ tag
 
@@ -311,6 +363,41 @@ The tag v$NEW is immutable; re-run against a higher version once fixed."
   fi
 else
   info "https://github.com/$REPO_SLUG/actions"
+fi
+
+# ---------------------------------------------------------------- npm
+
+if [ "$WITH_NPM" = "1" ]; then
+  step "Publishing @asale/seogeo@$NEW to npm"
+  if [ "$DRY_RUN" = "1" ]; then
+    info "[dry-run] npm publish --access public (from $NPM_PKG_DIR)"
+  else
+    PKG_NAME=$(grep -m1 '"name"' "$NPM_PKG_DIR/package.json" | sed 's/.*"name": "\(.*\)".*/\1/')
+    PKG_VERSION=$(grep -m1 '"version"' "$NPM_PKG_DIR/package.json" | sed 's/.*"version": "\(.*\)".*/\1/')
+    # The package downloads the release asset for its own version, so a
+    # mismatch here ships an installer that fetches the wrong build.
+    [ "$PKG_VERSION" = "$NEW" ] \
+      || die "$NPM_PKG_DIR/package.json reads $PKG_VERSION, not $NEW. Nothing was published to npm."
+
+    if npm view "$PKG_NAME@$NEW" version > /dev/null 2>&1; then
+      # npm versions are immutable too. Re-running the script after a partial
+      # failure must not abort a release that otherwise succeeded.
+      warn "$PKG_NAME@$NEW is already on npm; skipping"
+    else
+      TMP_NPMRC=$(mktemp)
+      chmod 600 "$TMP_NPMRC"
+      printf '//registry.npmjs.org/:_authToken=%s\n' "$NPM_TOKEN" > "$TMP_NPMRC"
+      if ( cd "$NPM_PKG_DIR" && npm_config_userconfig="$TMP_NPMRC" npm publish --access public ); then
+        info "https://www.npmjs.com/package/$PKG_NAME/v/$NEW"
+      else
+        rm -f "$TMP_NPMRC"; TMP_NPMRC=""
+        die "npm publish failed. The GitHub release v$NEW is already live; publish
+the package on its own once fixed:
+    cd $NPM_PKG_DIR && npm publish --access public"
+      fi
+      rm -f "$TMP_NPMRC"; TMP_NPMRC=""
+    fi
+  fi
 fi
 
 # ------------------------------------------------------------ clawhub

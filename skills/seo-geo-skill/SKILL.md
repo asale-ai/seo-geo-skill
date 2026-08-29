@@ -35,28 +35,42 @@ Three outcomes:
 ## Step 2 — Install the binary
 
 **Show the user the command and get their agreement before running it.** It
-downloads and executes a binary from a GitHub release; that is a decision for
-them to make, not for you to make on their behalf.
+downloads and runs a binary from a GitHub release; that is a decision for them
+to make, not for you to make on their behalf.
 
-macOS and Linux:
+If Node is available — every platform, one command:
+
+```bash
+npx -y @asale/seogeo --version
+```
+
+That resolves the package, downloads the release build for the machine's
+platform, verifies it against the published `SHA256SUMS`, and runs it. To keep
+`seogeo` on the PATH rather than going through `npx` each time:
+
+```bash
+npm install -g @asale/seogeo
+```
+
+The npm version and the release tag are the same number, so
+`@asale/seogeo@0.2.0` can only ever fetch `v0.2.0`.
+
+No Node? The shell installers do the same job:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.sh | sh
 ```
 
-Windows PowerShell:
-
 ```powershell
 irm https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.ps1 | iex
 ```
 
-The script resolves the latest release, verifies the archive against the
-published `SHA256SUMS`, installs to `~/.local/bin` (`%LOCALAPPDATA%\Programs\seogeo`
-on Windows), and then installs the skills. If checksum verification fails it
-aborts without touching anything — report that failure verbatim and stop.
+Either route verifies the archive against `SHA256SUMS` and aborts without
+touching anything if verification fails — report that failure verbatim and
+stop. The shell installers put the binary in `~/.local/bin`
+(`%LOCALAPPDATA%\Programs\seogeo` on Windows) and install the skills as well.
 
-If the user declines the script, `cargo install --git https://github.com/asale-ai/seo-geo-skill`
-builds it from source instead.
+If the user declines both, `cargo install seogeo` builds it from source.
 
 ---
 
@@ -67,7 +81,8 @@ seogeo install --target npx
 ```
 
 This delegates to [`npx skills`](https://github.com/vercel-labs/skills), which
-supports 75+ agents. It keeps one canonical copy in `~/.agents/skills` and
+supports 75+ agents. Note the two are unrelated: `@asale/seogeo` delivers the
+binary, `npx skills` distributes the skill files. It keeps one canonical copy in `~/.agents/skills` and
 symlinks it into each agent that is present, and it is pinned to the binary's
 own tag so the skills always match the code.
 
@@ -174,8 +189,15 @@ what to do with the numbers, and the MCP tool only carries the numbers.
 
 ```bash
 seogeo --version
-curl -fsSL https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.sh | sh
+npx -y @asale/seogeo@latest --version
 seogeo install --target npx
+```
+
+If the binary came from the shell installer rather than npm, re-run that
+instead:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/asale-ai/seo-geo-skill/main/install.sh | sh
 ```
 
 The `geo-update` skill walks this properly, including the version comparison
