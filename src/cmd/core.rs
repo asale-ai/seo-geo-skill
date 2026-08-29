@@ -419,7 +419,7 @@ const MAX_DECLARED: usize = 16;
 const MAX_ROBOTS_BYTES: usize = 1024 * 1024;
 const MAX_SITEMAP_BYTES: usize = 50 * 1024 * 1024;
 
-fn origin_of(input: &str) -> CmdResult<String> {
+pub fn origin_of(input: &str) -> CmdResult<String> {
     let url = coerce_scheme(input);
     if !validate_url(&url) {
         return err("Target must be a public HTTP or HTTPS URL");
@@ -1289,6 +1289,17 @@ fn parse_sitemap_locs(body: &[u8]) -> (Vec<String>, bool) {
         buf.clear();
     }
     (locs, is_index)
+}
+
+/// Sitemap URLs for any input — a bare host, a page URL, or a sitemap URL.
+///
+/// Returns an empty vector rather than an error so callers that only want
+/// sitemap coverage as an optional extra do not fail their whole report.
+pub fn sitemap_urls_for(input: &str, max_pages: usize) -> Vec<String> {
+    match origin_of(input) {
+        Ok(origin) => collect_sitemap_urls(&origin, max_pages),
+        Err(_) => Vec::new(),
+    }
 }
 
 pub fn crawl_sitemap(url: &str, max_pages: usize, json: bool) -> CmdResult<ExitCode> {

@@ -194,6 +194,139 @@ pub enum Command {
         json: bool,
     },
 
+    // ------------------------------------------------- answer-engine probing
+    /// Ask the answer engines a question and see who they name
+    Ask {
+        /// The question to put to the engines
+        prompt: String,
+        /// Comma-separated: perplexity, openai, anthropic, gemini, ollama
+        #[arg(long)]
+        provider: Option<String>,
+        /// Override the provider's default model
+        #[arg(long)]
+        model: Option<String>,
+        /// Report whether this brand is named in each answer
+        #[arg(long)]
+        brand: Option<String>,
+        #[arg(long, default_value_t = crate::llm::DEFAULT_TIMEOUT)]
+        timeout: u64,
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Measure and track brand visibility in answer engines
+    Visibility {
+        #[command(subcommand)]
+        action: VisibilityAction,
+    },
+
+    /// Check whether the citability score predicts real citations
+    CitabilityValidate {
+        /// Site to score and test
+        domain: String,
+        /// Prompt file: JSON array, {"prompts": [...]}, or one per line
+        #[arg(long)]
+        prompts: Option<String>,
+        /// Single prompt; repeatable
+        #[arg(long = "prompt")]
+        prompt: Vec<String>,
+        /// Retrieval engines only — the others report no sources
+        #[arg(long)]
+        provider: Option<String>,
+        #[arg(long, default_value_t = 30)]
+        max_pages: usize,
+        #[arg(long, default_value_t = 4)]
+        concurrency: usize,
+        #[arg(long, default_value_t = crate::llm::DEFAULT_TIMEOUT)]
+        timeout: u64,
+        #[arg(long)]
+        json: bool,
+    },
+
+    // --------------------------------------------------------------- crawl
+    /// Crawl a whole site and aggregate the cross-page issues
+    Crawl {
+        /// Seed URL
+        url: String,
+        #[arg(long, default_value_t = 100)]
+        max_pages: usize,
+        #[arg(long, default_value_t = 3)]
+        max_depth: usize,
+        #[arg(long, default_value_t = 4)]
+        concurrency: usize,
+        /// Follow links into subdomains of the seed host
+        #[arg(long)]
+        include_subdomains: bool,
+        /// Crawl paths robots.txt disallows — for sites you own
+        #[arg(long)]
+        ignore_robots: bool,
+        /// Pause between requests, per worker
+        #[arg(long, default_value_t = 0)]
+        delay_ms: u64,
+        #[arg(long, default_value_t = 30)]
+        timeout: u64,
+        #[arg(long)]
+        json: bool,
+    },
+
+    // ---------------------------------------------------------------- logs
+    /// Report what the AI crawlers did, from server access logs
+    Logs {
+        /// Log files; `.gz` is read directly, `-` reads stdin
+        #[arg(required = true)]
+        files: Vec<String>,
+        /// Site or sitemap URL, to list pages no AI crawler has fetched
+        #[arg(long)]
+        sitemap: Option<String>,
+        /// Ignore entries before this `YYYY-MM-DD`
+        #[arg(long)]
+        since: Option<String>,
+        #[arg(long, default_value_t = 20)]
+        top: usize,
+        #[arg(long)]
+        json: bool,
+    },
+
+    // -------------------------------------------------------------- report
+    /// Render seogeo JSON as one self-contained HTML file
+    ReportHtml {
+        /// JSON produced by any `--json` run; repeatable
+        #[arg(long = "input", required = true)]
+        inputs: Vec<String>,
+        #[arg(short, long)]
+        output: Option<String>,
+        #[arg(long)]
+        title: Option<String>,
+    },
+
+    /// Run the scheduled checks and exit non-zero on a regression
+    Watch {
+        #[arg(long)]
+        brand: Option<String>,
+        #[arg(long)]
+        domain: Option<String>,
+        #[arg(long)]
+        prompts: Option<String>,
+        #[arg(long = "competitor")]
+        competitors: Vec<String>,
+        /// Page to drift-check; repeatable
+        #[arg(long = "url")]
+        urls: Vec<String>,
+        /// Access log to analyse; repeatable
+        #[arg(long = "logs")]
+        log_files: Vec<String>,
+        #[arg(long, default_value = "seogeo-watch")]
+        out_dir: String,
+        /// Also render report.html into the output directory
+        #[arg(long)]
+        html: bool,
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Serve the checks over MCP on stdio
+    Mcp,
+
     // ------------------------------------------------------------- content
     /// Score text against the QRG content-quality heuristics
     ContentQuality {
@@ -853,6 +986,101 @@ pub struct LocalBusinessArgs {
     pub hours: Vec<String>,
     #[arg(long, num_args = 0..)]
     pub same_as: Vec<String>,
+}
+
+#[derive(Subcommand, Debug)]
+pub enum VisibilityAction {
+    /// List the answer engines and which ones are configured here
+    Providers {
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Scaffold a buyer-intent prompt set to start from
+    Prompts {
+        /// Site the prompts are about
+        domain: String,
+        #[arg(long)]
+        brand: Option<String>,
+        /// Topic to build prompts around; repeatable
+        #[arg(long = "topic")]
+        topics: Vec<String>,
+        #[arg(long, default_value_t = 20)]
+        count: usize,
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Run a prompt set against the engines and record the result
+    Run {
+        #[arg(long)]
+        brand: String,
+        /// The brand's own domain, to detect self-citations
+        #[arg(long)]
+        domain: Option<String>,
+        /// Prompt file: JSON array, {"prompts": [...]}, or one per line
+        #[arg(long)]
+        prompts: Option<String>,
+        /// Single prompt; repeatable
+        #[arg(long = "prompt")]
+        prompt: Vec<String>,
+        #[arg(long)]
+        provider: Option<String>,
+        #[arg(long)]
+        model: Option<String>,
+        /// Competitor to score share of voice against; repeatable
+        #[arg(long = "competitor")]
+        competitors: Vec<String>,
+        /// Another name for the brand that should count as a mention
+        #[arg(long = "alias")]
+        aliases: Vec<String>,
+        /// Label this run, e.g. a release tag
+        #[arg(long)]
+        label: Option<String>,
+        #[arg(long, default_value_t = 4)]
+        concurrency: usize,
+        #[arg(long, default_value_t = crate::llm::DEFAULT_TIMEOUT)]
+        timeout: u64,
+        /// Count the probes and the cost without sending anything
+        #[arg(long)]
+        dry_run: bool,
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Recorded runs for a brand, newest first
+    History {
+        #[arg(long)]
+        brand: String,
+        #[arg(long)]
+        days: Option<i64>,
+        #[arg(long, default_value_t = 30)]
+        limit: usize,
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Compare the latest run against one from before the window
+    Diff {
+        #[arg(long)]
+        brand: String,
+        #[arg(long, default_value_t = 30)]
+        days: i64,
+        #[arg(long)]
+        json: bool,
+    },
+
+    /// Which domains the engines cite when answering about this brand
+    Citations {
+        #[arg(long)]
+        brand: String,
+        #[arg(long)]
+        days: Option<i64>,
+        #[arg(long, default_value_t = 25)]
+        limit: usize,
+        #[arg(long)]
+        json: bool,
+    },
 }
 
 #[derive(Subcommand, Debug)]

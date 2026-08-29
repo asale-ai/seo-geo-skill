@@ -196,9 +196,21 @@ fn configured_proxy() -> Option<ureq::Proxy> {
     None
 }
 
-fn agent(timeout: Duration, follow_redirects: bool, max_redirects: u32) -> ureq::Agent {
+fn agent(
+    timeout: Duration,
+    follow_redirects: bool,
+    max_redirects: u32,
+    allow_local: bool,
+) -> ureq::Agent {
     let mut builder = ureq::AgentBuilder::new();
-    if let Some(proxy) = configured_proxy() {
+    if allow_local {
+        // A local endpoint must not be sent through the outbound proxy.
+        // Proxies configured for internet egress answer 502 for 127.0.0.1,
+        // which surfaces as "the local model server is broken" when the real
+        // cause is that the request never reached it.
+        // Neither a proxy nor the SSRF resolver: ureq's default resolver is
+        // exactly what a request to 127.0.0.1 needs.
+    } else if let Some(proxy) = configured_proxy() {
         // With a proxy the local resolver never runs — the proxy resolves the
         // target host — so installing it would be misleading.
         builder = builder.proxy(proxy);
@@ -225,6 +237,13 @@ pub struct RequestOptions {
     pub user_agent: Option<String>,
     pub headers: Vec<(String, String)>,
     pub max_bytes: usize,
+    /// Skip the SSRF resolver and the URL policy.
+    ///
+    /// Reserved for endpoints the user names themselves and that are
+    /// expected to be private — today only a local Ollama server. It is never
+    /// set from a URL that came out of a page, a sitemap, or a redirect, so
+    /// the audit paths keep the full policy.
+    pub allow_local: bool,
 }
 
 impl Default for RequestOptions {
@@ -236,6 +255,7 @@ impl Default for RequestOptions {
             user_agent: None,
             headers: Vec::new(),
             max_bytes: 64 * 1024 * 1024,
+            allow_local: false,
         }
     }
 }
@@ -257,6 +277,10 @@ impl RequestOptions {
     }
     pub fn max_bytes(mut self, n: usize) -> Self {
         self.max_bytes = n;
+        self
+    }
+    pub fn allow_local(mut self) -> Self {
+        self.allow_local = true;
         self
     }
 }
@@ -322,8 +346,17 @@ fn request(
     opts: &RequestOptions,
     body: Option<Vec<u8>>,
 ) -> Result<Response, HttpError> {
-    let (norm, _pinned) = validate_url_strict(url).map_err(HttpError::Safety)?;
-    let agent = agent(opts.timeout, opts.follow_redirects, opts.max_redirects);
+    let norm = if opts.allow_local {
+        url.to_string()
+    } else {
+        validate_url_strict(url).map_err(HttpError::Safety)?.0
+    };
+    let agent = agent(
+        opts.timeout,
+        opts.follow_redirects,
+        opts.max_redirects,
+        opts.allow_local,
+    );
     let mut req = agent.request(method, &norm);
 
     let ua = opts.user_agent.as_deref().unwrap_or(DEFAULT_USER_AGENT);
