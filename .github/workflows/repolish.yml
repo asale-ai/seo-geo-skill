@@ -70,7 +70,7 @@ jobs:
       # Puts every finding on its own line in the diff. always(), so the
       # annotations still show up on the run that failed the gate — which is
       # the run where they matter most.
-      - uses: github/codeql-action/upload-sarif@v3
+      - uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: repolish.sarif
