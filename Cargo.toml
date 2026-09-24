@@ -22,7 +22,7 @@ ureq = { version = "2.12", default-features = false, features = ["tls", "gzip", 
 url = "2.5"
 regex = "1.11"
 scraper = { version = "0.21", default-features = false }
-quick-xml = "0.37"
+quick-xml = "0.41"
 rusqlite = { version = "0.32", features = ["bundled"] }
 sha2 = "0.10"
 base64 = "0.22"
