@@ -21,7 +21,7 @@ serde_json = { version = "1", features = ["preserve_order"] }
 ureq = { version = "2.12", default-features = false, features = ["tls", "gzip", "json", "charset", "socks-proxy"] }
 url = "2.5"
 regex = "1.11"
-scraper = { version = "0.21", default-features = false }
+scraper = { version = "0.27", default-features = false }
 quick-xml = "0.37"
 rusqlite = { version = "0.32", features = ["bundled"] }
 sha2 = "0.10"
