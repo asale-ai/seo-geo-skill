@@ -23,7 +23,7 @@ url = "2.5"
 regex = "1.11"
 scraper = { version = "0.21", default-features = false }
 quick-xml = "0.37"
-rusqlite = { version = "0.32", features = ["bundled"] }
+rusqlite = { version = "0.40", features = ["bundled"] }
 sha2 = "0.10"
 base64 = "0.22"
 time = { version = "0.3", features = ["formatting", "parsing", "macros", "local-offset"] }
